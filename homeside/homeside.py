@@ -2,18 +2,18 @@
 import argparse
 import io
 import shutil
-import socket
+from socketserver import StreamRequestHandler, TCPServer
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 _ssh_socket = None
+_queued_content = None
 
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        global _ssh_socket
-        _ssh_socket.listen(0)
-        body = _ssh_socket.recv(1024)
+        body = _queued_content
+
         f = io.BytesIO()
         f.write(body)
         f.seek(0)
@@ -21,9 +21,16 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "raw")
         self.send_header("Content-Length", len(body))
         self.end_headers()
-        # This should be done after sending the headers
+        # This needs to be done after sending the headers
         shutil.copyfileobj(f, self.wfile)
         f.close()
+
+
+class SSHSocketRequestHandler(StreamRequestHandler):
+        def handle(self):
+            print("got request : {}".format(self.request))
+            global _queued_content
+            _queued_content = self.request.recv(1024)
 
 
 def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
@@ -38,17 +45,20 @@ def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
     httpd = HTTPServer(server_address, SSHTunnelHTTPRequestHandler)
 
     # Instanciate ssh socket
-    _ssh_socket = socket.socket()
-    _ssh_socket.bind((bind, ssh_port))
+    _ssh_socket = TCPServer((bind, ssh_port), SSHSocketRequestHandler)
+    ssh_socket_info = _ssh_socket.socket.getsockname()
+    print("Socket listening on", ssh_socket_info[0], "port", ssh_socket_info[1], "...")
 
     sa = httpd.socket.getsockname()
     print("Serving HTTP on", sa[0], "port", sa[1], "...")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nKeyboard interrupt received, exiting.")
-        httpd.server_close()
-        sys.exit(0)
+    while True:
+        try:
+            _ssh_socket.handle_request()
+            httpd.handle_request()
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupt received, exiting.")
+            httpd.server_close()
+            sys.exit(0)
 
 
 if __name__ == '__main__':

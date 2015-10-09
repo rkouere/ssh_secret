@@ -2,11 +2,12 @@
 import argparse
 import io
 import shutil
+from threading import Thread
 from socketserver import StreamRequestHandler, TCPServer
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-_ssh_socket = None
+_ssh_server = None
 _queued_content = None
 
 
@@ -33,6 +34,38 @@ class SSHSocketRequestHandler(StreamRequestHandler):
             _queued_content = self.request.recv(1024)
 
 
+class SSHThread(Thread):
+    def __init__(self, bind, port, *args, **kwargs):
+        self.bind = bind
+        self.port = port
+        super(*args, **kwargs)
+        Thread.__init__(self)
+
+    def start(self):
+        self.server = TCPServer((self.bind, self.port), SSHSocketRequestHandler)
+        ssh_server_info = self.server.socket.getsockname()
+        print("Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
+
+    def run(self):
+        self.server.serve_forever()
+
+
+class HTTPThread(Thread):
+    def __init__(self, bind, port, *args, **kwargs):
+        self.bind = bind
+        self.port = port
+        super(*args, **kwargs)
+        Thread.__init__(self)
+
+    def start(self):
+        self.server = HTTPServer((self.bind, self.port), SSHTunnelHTTPRequestHandler)
+        ssh_server_info = self.server.socket.getsockname()
+        print("Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
+
+    def run(self):
+        self.server.serve_forever()
+
+
 def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
     """Test the HTTP request handler class.
 
@@ -40,24 +73,24 @@ def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
     argument).
 
     """
-    global _ssh_socket
-    server_address = (bind, port)
-    httpd = HTTPServer(server_address, SSHTunnelHTTPRequestHandler)
+    global _ssh_server
 
-    # Instanciate ssh socket
-    _ssh_socket = TCPServer((bind, ssh_port), SSHSocketRequestHandler)
-    ssh_socket_info = _ssh_socket.socket.getsockname()
-    print("Socket listening on", ssh_socket_info[0], "port", ssh_socket_info[1], "...")
+    # Instanciate ssh thread
+    ssh_thread = SSHThread(bind, ssh_port)
+    ssh_thread.start()
 
-    sa = httpd.socket.getsockname()
-    print("Serving HTTP on", sa[0], "port", sa[1], "...")
+    # Instanciate http thread
+    http_thread = HTTPThread(bind, port)
+    http_thread.start()
+
     while True:
         try:
-            _ssh_socket.handle_request()
-            httpd.handle_request()
+            ssh_thread.run()
+            http_thread.run()
         except KeyboardInterrupt:
             print("\nKeyboard interrupt received, exiting.")
-            httpd.server_close()
+            ssh_thread.server.server_close()
+            http_thread.server_close()
             sys.exit(0)
 
 

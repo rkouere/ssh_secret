@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 import argparse
-import sys
 import io
 import shutil
+import socket
+import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+_ssh_socket = None
 
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        body = "you are at {}".format(self.path).encode()
+        global _ssh_socket
+        _ssh_socket.listen(0)
+        body = _ssh_socket.recv(1024)
         f = io.BytesIO()
         f.write(body)
         f.seek(0)
@@ -21,15 +26,20 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         f.close()
 
 
-def run(protocol="HTTP/1.0", port=8000, bind=""):
+def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
     """Test the HTTP request handler class.
 
     This runs an HTTP server on port 8000 (or the first command line
     argument).
 
     """
+    global _ssh_socket
     server_address = (bind, port)
     httpd = HTTPServer(server_address, SSHTunnelHTTPRequestHandler)
+
+    # Instanciate ssh socket
+    _ssh_socket = socket.socket()
+    _ssh_socket.bind((bind, ssh_port))
 
     sa = httpd.socket.getsockname()
     print("Serving HTTP on", sa[0], "port", sa[1], "...")
@@ -47,8 +57,8 @@ if __name__ == '__main__':
                         help='Specify alternate bind address '
                              '[default: all interfaces]')
     parser.add_argument('port', action='store',
-                        default=2222, type=int,
+                        default=8000, type=int,
                         nargs='?',
-                        help='Specify alternate port [default: 2222]')
+                        help='Specify alternate port [default: 8000]')
     args = parser.parse_args()
     run(port=args.port, bind=args.bind)

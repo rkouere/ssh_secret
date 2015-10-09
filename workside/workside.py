@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import io
+import shutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         body = "you are at {}".format(self.path).encode()
-        f = self.wfile
+        f = io.BytesIO()
         f.write(body)
         f.seek(0)
         self.send_response(200)
         self.send_header("Content-type", "raw")
         self.send_header("Content-Length", len(body))
         self.end_headers()
+        # This should be done after sending the headers
+        shutil.copyfileobj(f, self.wfile)
         f.close()
-        return f
 
 
 def run(protocol="HTTP/1.0", port=8000, bind=""):

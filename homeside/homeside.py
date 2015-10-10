@@ -2,18 +2,20 @@
 import argparse
 import io
 import shutil
+import queue
 from threading import Thread
 from socketserver import StreamRequestHandler, TCPServer
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 _ssh_server = None
-_queued_content = None
+queued_content = queue.Queue()
 
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        body = _queued_content
+        print(queued_content)
+        body = queued_content.get()
 
         f = io.BytesIO()
         f.write(body)
@@ -24,14 +26,16 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         # This needs to be done after sending the headers
         shutil.copyfileobj(f, self.wfile)
+        queued_content.task_done()
         f.close()
 
 
 class SSHSocketRequestHandler(StreamRequestHandler):
         def handle(self):
             print("got request : {}".format(self.request))
-            global _queued_content
-            _queued_content = self.request.recv(1024)
+            global queued_content
+            queued_content.put(self.request.recv(1024))
+            print(queued_content)
 
 
 class SSHThread(Thread):
@@ -41,12 +45,11 @@ class SSHThread(Thread):
         super(*args, **kwargs)
         Thread.__init__(self)
 
-    def start(self):
+    def run(self):
         self.server = TCPServer((self.bind, self.port), SSHSocketRequestHandler)
         ssh_server_info = self.server.socket.getsockname()
-        print("Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
-
-    def run(self):
+        print("SSH Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
+        print("Now serving ssh")
         self.server.serve_forever()
 
 
@@ -57,12 +60,11 @@ class HTTPThread(Thread):
         super(*args, **kwargs)
         Thread.__init__(self)
 
-    def start(self):
+    def run(self):
         self.server = HTTPServer((self.bind, self.port), SSHTunnelHTTPRequestHandler)
         ssh_server_info = self.server.socket.getsockname()
-        print("Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
-
-    def run(self):
+        print("HTTP Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
+        print("Now serving http")
         self.server.serve_forever()
 
 
@@ -77,21 +79,19 @@ def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
 
     # Instanciate ssh thread
     ssh_thread = SSHThread(bind, ssh_port)
-    ssh_thread.start()
 
     # Instanciate http thread
     http_thread = HTTPThread(bind, port)
-    http_thread.start()
 
-    while True:
-        try:
-            ssh_thread.run()
-            http_thread.run()
-        except KeyboardInterrupt:
-            print("\nKeyboard interrupt received, exiting.")
-            ssh_thread.server.server_close()
-            http_thread.server_close()
-            sys.exit(0)
+    try:
+        ssh_thread.start()
+        http_thread.start()
+
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt received, exiting.")
+        ssh_thread.server.server_close()
+        http_thread.server.server_close()
+        sys.exit(0)
 
 
 if __name__ == '__main__':

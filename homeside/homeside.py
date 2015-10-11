@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import argparse
 import io
-import shutil
 import queue
-from threading import Thread
-from socketserver import StreamRequestHandler, TCPServer
+import shutil
+import socket
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from threading import Thread
 
 _ssh_server = None
 queued_content = queue.Queue()
@@ -14,6 +14,13 @@ queued_content = queue.Queue()
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        if self.path == "/down":
+            self.handle_down()
+        else:
+            self.send_response(400)
+            self.end_headers()
+
+    def handle_down(self):
         print(queued_content)
         body = queued_content.get()
 
@@ -30,27 +37,26 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         f.close()
 
 
-class SSHSocketRequestHandler(StreamRequestHandler):
-        def handle(self):
-            print("got request : {}".format(self.request))
-            global queued_content
-            queued_content.put(self.request.recv(1024))
-            print(queued_content)
 
 
 class SSHThread(Thread):
     def __init__(self, bind, port, *args, **kwargs):
         self.bind = bind
         self.port = port
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         super(*args, **kwargs)
         Thread.__init__(self)
 
     def run(self):
-        self.server = TCPServer((self.bind, self.port), SSHSocketRequestHandler)
-        ssh_server_info = self.server.socket.getsockname()
+        self.socket.bind((self.bind, self.port))
+        self.socket.listen(0)
+        ssh_server_info = self.socket.getsockname()
         print("SSH Socket listening on", ssh_server_info[0], "port", ssh_server_info[1], "...")
         print("Now serving ssh")
-        self.server.serve_forever()
+        while True:
+            incomming, _ = self.socket.accept()
+            queued_content.put(incomming.recv(1024))
+            print("Had a new SSH paquet ...")
 
 
 class HTTPThread(Thread):
@@ -68,20 +74,15 @@ class HTTPThread(Thread):
         self.server.serve_forever()
 
 
-def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
-    """Test the HTTP request handler class.
-
-    This runs an HTTP server on port 8000 (or the first command line
-    argument).
-
+def run(protocol="HTTP/1.0", http_port=8000, ssh_port=2222, bind=""):
+    """
+    This run a listening ssh thread, and a listening http thread.
     """
     global _ssh_server
 
-    # Instanciate ssh thread
+    # Instanciate the needed threads
     ssh_thread = SSHThread(bind, ssh_port)
-
-    # Instanciate http thread
-    http_thread = HTTPThread(bind, port)
+    http_thread = HTTPThread(bind, http_port)
 
     try:
         ssh_thread.start()
@@ -89,7 +90,7 @@ def run(protocol="HTTP/1.0", port=8000, ssh_port=2222, bind=""):
 
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received, exiting.")
-        ssh_thread.server.server_close()
+        ssh_thread.socket.close()
         http_thread.server.server_close()
         sys.exit(0)
 
@@ -99,9 +100,13 @@ if __name__ == '__main__':
     parser.add_argument('--bind', '-b', default='', metavar='ADDRESS',
                         help='Specify alternate bind address '
                              '[default: all interfaces]')
-    parser.add_argument('port', action='store',
+    parser.add_argument('http_port', action='store',
                         default=8000, type=int,
                         nargs='?',
-                        help='Specify alternate port [default: 8000]')
+                        help='Specify alternate port for http interface [default: 8000]')
+    parser.add_argument('ssh_port', action='store',
+                        default=2222, type=int,
+                        nargs='?',
+                        help='Specify alternate port for ssh interface [default: 2222]')
     args = parser.parse_args()
-    run(port=args.port, bind=args.bind)
+    run(ssh_port=args.ssh_port, http_port=args.http_port, bind=args.bind)

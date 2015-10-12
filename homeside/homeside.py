@@ -16,6 +16,8 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/down":
             self.handle_down()
+        elif self.path == "/up":
+            self.handle_up()
         else:
             self.send_response(400)
             self.end_headers()
@@ -36,7 +38,25 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         queued_content.task_done()
         f.close()
 
-
+    def handle_up(self):
+        """
+        Read the content of the request, and inject it in ssh socket
+        """
+        print(self.rfile)
+        with self.rfile as buffer:
+            lines = buffer.readlines()
+        body = "".join([x.decode() for x in lines])
+        print(body)
+        f = io.BytesIO()
+        f.write(body)
+        f.seek(0)
+        self.send_response(200)
+        self.send_header("Content-type", "raw")
+        self.send_header("Content-Length", len(body))
+        self.end_headers()
+        # This needs to be done after sending the headers
+        shutil.copyfileobj(f, self.wfile)
+        f.close()
 
 
 class SSHThread(Thread):

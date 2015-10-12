@@ -25,9 +25,9 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def handle_down(self):
-        print(incoming_content)
         body = incoming_content.get()
 
+        print(body)
         f = io.BytesIO()
         f.write(body)
         f.seek(0)
@@ -46,6 +46,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
+        print("Read body of size {}".format(len(body)))
         outgoing_content.put(body)
         self.send_response(201)
         self.send_header("Content-type", "raw")
@@ -69,7 +70,7 @@ class SSHRequestThread(Thread):
             rawdata = outgoing_content.get()
             print(rawdata)
             len = self.socket.send(rawdata)
-            print("{} bytes sent".format(len))
+            print("{} bytes sent to ssh client".format(len))
 
 
 class SSHThread(Thread):

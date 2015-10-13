@@ -51,7 +51,7 @@ class SSHWriteThread(Thread):
         while True:
             rawdata = self.socket.recv(2048)
             print("Read data from SSH server :"+str(rawdata))
-            try_post(self.baseurl+"/down", self.interval, data=rawdata)
+            try_post(self.baseurl+"/up", self.interval, data=rawdata)
 
 
 def run(baseurl="http://localhost:8000", ssh_port=22, bind="", interval=1):

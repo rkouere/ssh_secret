@@ -9,8 +9,6 @@ except ImportError:
     print("Please download requests with `pip install requests`")
     sys.exit(1)
 
-incoming_content = queue.Queue()
-outgoing_content = queue.Queue()
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
@@ -32,7 +30,7 @@ def run(baseurl="http://localhost:8000", ssh_port=22, bind=""):
         print(r.content)
         ssh_socket.send(r.content)
         rawdata = ssh_socket.recv(1024)
-        print("POST {}".format(rawdata.decode()))
+        print(rawdata)
         requests.post(baseurl+"/up", data=rawdata)
 
 

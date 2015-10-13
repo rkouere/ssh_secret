@@ -25,7 +25,10 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def handle_down(self):
-        body = incoming_content.get()
+        try:
+            body = incoming_content.get(timeout=1)
+        except queue.Empty:
+            body = b""
 
         print(body)
         f = io.BytesIO()
@@ -37,7 +40,6 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         # This needs to be done after sending the headers
         shutil.copyfileobj(f, self.wfile)
-        incoming_content.task_done()
         f.close()
 
     def handle_up(self):
@@ -54,8 +56,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         # This needs to be done after sending the headers
 
 
-class SSHRequestThread(Thread):
-
+class SSHReadThread(Thread):
     def __init__(self, socket, *args, **kwargs):
         self.socket = socket
         super(*args, **kwargs)
@@ -63,10 +64,18 @@ class SSHRequestThread(Thread):
 
     def run(self):
         while True:
-            rawdata = self.socket.recv(1024)
+            rawdata = self.socket.recv(2048)
             incoming_content.put(rawdata)
-            #if not outgoing_content.empty():
 
+
+class SSHWriteThread(Thread):
+    def __init__(self, socket, *args, **kwargs):
+        self.socket = socket
+        super(*args, **kwargs)
+        Thread.__init__(self)
+
+    def run(self):
+        while True:
             rawdata = outgoing_content.get()
             print(rawdata)
             len = self.socket.send(rawdata)
@@ -90,10 +99,12 @@ class SSHThread(Thread):
         while True:
             incomming, _ = self.socket.accept()
             print("Got a client ! Handle it in a new thread")
-            client_thread = SSHRequestThread(incomming)
-            client_thread.start()
-            client_thread.run()
-
+            client_reading_thread = SSHReadThread(incomming)
+            client_writing_thread = SSHWriteThread(incomming)
+            client_reading_thread.start()
+            client_writing_thread.start()
+            client_reading_thread.run()
+            client_writing_thread.run()
 
 class HTTPThread(Thread):
     def __init__(self, bind, port, *args, **kwargs):

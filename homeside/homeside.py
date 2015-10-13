@@ -16,13 +16,29 @@ ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path == "/down":
+        if self.path == "/":
+            self.handle_root()
+        elif self.path == "/down":
             self.handle_down()
         elif self.path == "/up":
             self.handle_up()
         else:
             self.send_response(400)
             self.end_headers()
+
+    def handle_root(self):
+        body = b"SSH to HTTP tunnel is up and running"
+        print(body)
+        f = io.BytesIO()
+        f.write(body)
+        f.seek(0)
+        self.send_response(200)
+        self.send_header("Content-type", "raw")
+        self.send_header("Content-Length", len(body))
+        self.end_headers()
+        # This needs to be done after sending the headers
+        shutil.copyfileobj(f, self.wfile)
+        f.close()
 
     def handle_down(self):
         try:

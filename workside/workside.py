@@ -7,7 +7,7 @@ from threading import Thread
 try:
     import requests
 except ImportError:
-    print("Please download requests with `pip install requests`")
+    print("Please download requests with `pip3 install requests`")
     sys.exit(1)
 
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

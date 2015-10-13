@@ -43,6 +43,19 @@ to.
 As soon as the ssh client started to send data to the http server (on
 the internal port), the http server will start expose those data to the ``/down`` url
 
-## Specification ##
+## Usage ##
 
-With a first implementation, we
+### Server side ###
+
+Ensure you have a running sshd server, listening on port 22. ``ssh localhost`` should return.
+
+Run ``python3 workside/workside.py``
+
+### Client side ###
+
+Run ``python3 homeside/homeside.py``
+
+Then run a ssh client to the listening port (2222 by default) : ``ssh localhost -p 2222``
+
+
+If everything success, you should be given a shell with the ssh client.

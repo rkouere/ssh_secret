@@ -13,32 +13,37 @@ except ImportError:
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
+def try_post(url, interval, *args, **kwargs):
+    while True:
+        try:
+            r = requests.post(url, *args, **kwargs)
+            print("Connection etablished with {}".format(url))
+            return r
+        except requests.exceptions.ConnectionError:
+            print("Connection to {} failed, retry in {} sec".format(url, interval))
+            time.sleep(interval)
+
 class SSHReadThread(Thread):
-    def __init__(self, socket, baseurl, *args, **kwargs):
+    def __init__(self, socket, baseurl, interval, *args, **kwargs):
         self.socket = socket
         self.baseurl = baseurl
+        self.interval = interval
         super(*args, **kwargs)
         Thread.__init__(self)
 
     def run(self):
         while True:
-            while True:
-                try:
-                    r = requests.post(self.baseurl+"/down")
-                    print("Connection etablished")
-                    break
-                except requests.exceptions.ConnectionError:
-                    print("Connection failed, retry in 1 sec")
-                    time.sleep(1)
+            r = try_post(self.baseurl+"/down", self.interval)
             if len(r.content):
                 print("Sending data to SSH server : "+str(r.content))
                 self.socket.send(r.content)
 
 
 class SSHWriteThread(Thread):
-    def __init__(self, socket, baseurl, *args, **kwargs):
+    def __init__(self, socket, baseurl, interval, *args, **kwargs):
         self.socket = socket
         self.baseurl = baseurl
+        self.interval = interval
         super(*args, **kwargs)
         Thread.__init__(self)
 
@@ -46,34 +51,24 @@ class SSHWriteThread(Thread):
         while True:
             rawdata = self.socket.recv(2048)
             print("Read data from SSH server :"+str(rawdata))
-            while True:
-                try:
-                    r = requests.post(self.baseurl+"/up", data=rawdata)
-                    print("Connection etablished")
-                    break
-                except requests.exceptions.ConnectionError:
-                    print("Connection failed, retry in 1 sec")
-                    time.sleep(1)
+            try_post(self.baseurl+"/down", self.interval, data=rawdata)
 
 
-
-
-def run(baseurl="http://localhost:8000", ssh_port=22, bind=""):
+def run(baseurl="http://localhost:8000", ssh_port=22, bind="", interval=1):
     try:
         ssh_socket.connect((bind, ssh_port))
     except ConnectionRefusedError:
         print("Cannot connect to local sshd on port {}".format(ssh_port))
         sys.exit(1)
 
-    read_thread = SSHReadThread(ssh_socket, baseurl)
-    write_thread = SSHWriteThread(ssh_socket, baseurl)
+    read_thread = SSHReadThread(ssh_socket, baseurl, interval)
+    write_thread = SSHWriteThread(ssh_socket, baseurl, interval)
 
     read_thread.start()
     write_thread.start()
 
     read_thread.run()
     write_thread.run()
-
 
 
 if __name__ == '__main__':
@@ -89,5 +84,9 @@ if __name__ == '__main__':
                         default=22, type=int,
                         nargs='?',
                         help='Specify alternate port for ssh interface [default: 22]')
+    parser.add_argument('--interval', action='store',
+                        default=1,
+                        nargs='?',
+                        help='Specify alternate interval between http requests [default: 1 s]')
     args = parser.parse_args()
-    run(ssh_port=args.ssh_port, baseurl=args.baseurl, bind=args.bind)
+    run(ssh_port=args.ssh_port, baseurl=args.baseurl, bind=args.bind, interval=float(args.interval))

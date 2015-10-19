@@ -2,7 +2,7 @@
 Commons function used both by workside and homeside
 """
 
-import hashlib, binascii
+import hashlib
 try:
     from Crypto.Cipher import AES
     from Crypto import Random
@@ -28,6 +28,8 @@ class Cipherer():
         return msg
 
     def decrypt(self, data):
+        if not len(data):
+            return b''
         iv = data[:16]
         msg = data[16:]
         cipher = AES.new(self.key, AES.MODE_CFB, iv)

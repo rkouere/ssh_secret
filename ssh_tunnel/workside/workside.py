@@ -2,6 +2,7 @@ import argparse
 import socket
 import sys
 import time
+import random
 
 from threading import Thread
 try:
@@ -13,12 +14,13 @@ except ImportError:
 from ssh_tunnel.commons import Cipherer
 
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.34 (KHTML, like Gecko) konqueror/4.14.11 Safari/534.34"
 
 
 def try_post(url, interval, *args, **kwargs):
     while True:
         try:
-            r = requests.post(url, *args, **kwargs)
+            r = requests.post(url, headers={'User-Agent': USER_AGENT}, *args, **kwargs)
             return r
         except requests.exceptions.ConnectionError:
             print("Connection to {} failed, retry in {} sec".format(url, interval))
@@ -36,7 +38,8 @@ class SSHReadThread(Thread):
 
     def run(self):
         while True:
-            r = try_post(self.baseurl+"/down", self.interval)
+            request_id = random.getrandbits(128)
+            r = try_post(self.baseurl+"/down/{}".format(request_id), self.interval)
             if len(r.content):
                 content = self.cipherer.decrypt(r.content)
                 self.socket.send(content)
@@ -55,7 +58,8 @@ class SSHWriteThread(Thread):
         while True:
             rawdata = self.socket.recv(2048)
             encrypted_rawdata = self.cipherer.encrypt(rawdata)
-            try_post(self.baseurl+"/up", self.interval, data=encrypted_rawdata)
+            request_id = random.getrandbits(128)
+            try_post(self.baseurl+"/up/{}".format(request_id), self.interval, data=encrypted_rawdata)
 
 
 def run(passphrase, baseurl="http://localhost:8000", ssh_port=22, bind="", interval=0.1):

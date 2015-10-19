@@ -12,17 +12,24 @@ from ssh_tunnel.commons import Cipherer
 
 _ssh_server = None
 incoming_content = queue.Queue()
+incoming_done = {}
 outgoing_content = queue.Queue()
+outgoing_done = {}
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 cipherer = None
+
+
+def parse_id(path):
+    return path.split("/")[2]
+
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/":
             self.handle_root()
-        elif self.path == "/down":
+        elif self.path.startswith("/down"):
             self.handle_down()
-        elif self.path == "/up":
+        elif self.path.startswith("/up"):
             self.handle_up()
         else:
             self.send_response(400)
@@ -43,8 +50,18 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         f.close()
 
     def handle_down(self):
+        """
+        Expose data to the ssh server
+        """
+        identifier = parse_id(self.path)
         try:
-            body = incoming_content.get(timeout=1)
+            if identifier in incoming_done:
+                body = incoming_done[identifier]
+                print("already done this down, resend")
+                print(body)
+            else:
+                body = incoming_content.get(timeout=1)
+                incoming_done[identifier] = body
             body = cipherer.encrypt(body)
         except queue.Empty:
             body = b""
@@ -62,12 +79,15 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_up(self):
         """
-        Read the content of the request, and inject it in ssh socket
+        Read the content of the request, and inject it to the ssh client
         """
+        identifier = parse_id(self.path)
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
         body = cipherer.decrypt(body)
-        outgoing_content.put(body)
+        if len(body) > 0 and identifier not in outgoing_done:
+            outgoing_content.put(body)
+            outgoing_done[identifier] = body
         self.send_response(201)
         self.send_header("Content-type", "raw")
         self.end_headers()

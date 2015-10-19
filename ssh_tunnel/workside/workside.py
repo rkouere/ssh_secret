@@ -19,7 +19,6 @@ def try_post(url, interval, *args, **kwargs):
     while True:
         try:
             r = requests.post(url, *args, **kwargs)
-            print("Connection etablished with {}".format(url))
             return r
         except requests.exceptions.ConnectionError:
             print("Connection to {} failed, retry in {} sec".format(url, interval))
@@ -39,7 +38,6 @@ class SSHReadThread(Thread):
         while True:
             r = try_post(self.baseurl+"/down", self.interval)
             if len(r.content):
-                print("Sending data to SSH server : "+str(r.content))
                 content = self.cipherer.decrypt(r.content)
                 self.socket.send(content)
 
@@ -56,12 +54,11 @@ class SSHWriteThread(Thread):
     def run(self):
         while True:
             rawdata = self.socket.recv(2048)
-            print("Read data from SSH server :"+str(rawdata))
             encrypted_rawdata = self.cipherer.encrypt(rawdata)
             try_post(self.baseurl+"/up", self.interval, data=encrypted_rawdata)
 
 
-def run(passphrase, baseurl="http://localhost:8000", ssh_port=22, bind="", interval=1):
+def run(passphrase, baseurl="http://localhost:8000", ssh_port=22, bind="", interval=0.1):
     try:
         ssh_socket.connect((bind, ssh_port))
     except ConnectionRefusedError:
@@ -93,9 +90,9 @@ if __name__ == '__main__':
                         nargs='?',
                         help='Specify alternate port for ssh interface [default: 22]')
     parser.add_argument('--interval', action='store',
-                        default=1,
+                        default=0.1,
                         nargs='?',
-                        help='Specify alternate interval between http requests [default: 1 s]')
+                        help='Specify alternate interval between http requests [default: 0.1 s]')
     parser.add_argument('passphrase', action='store',
                         help='Specify the passphrase to use')
     args = parser.parse_args()

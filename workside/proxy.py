@@ -6,11 +6,18 @@ import shutil
 import io
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+blacklisted = set()
+
+class BlacklistedException(Exception): pass
 
 class ProxyHandler(BaseHTTPRequestHandler):
+
+
     def do_GET(self):
-        print(self)
-        request = requests.get(self.path)
+        try:
+            request = requests.get(self.path)
+        except ConnectionRefusedError:
+            self.log_message("{} not reachable".format(self.path))
         f = io.BytesIO()
         f.write(request.content)
         f.seek(0)
@@ -19,17 +26,47 @@ class ProxyHandler(BaseHTTPRequestHandler):
         shutil.copyfileobj(f, self.wfile)
 
     def do_POST(self):
-        print(self)
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
-        print("Read body of size {}".format(len(body)))
-        request = requests.post(self.path, data=body)
-        f = io.BytesIO()
-        f.write(request.content)
-        f.seek(0)
-        self.send_response(request.status_code)
-        self.end_headers()
-        shutil.copyfileobj(f, self.wfile)
+        try:
+            self.filter_request(body)
+        except BlacklistedException:
+            self.send_response(400)
+            self.end_headers()
+            self.log_message("Suspicious behaviour detected at {}".format(self.path))
+        try:
+            request = requests.post(self.path, data=body)
+            self.filter_request(request.content)
+            f = io.BytesIO()
+            f.write(request.content)
+            f.seek(0)
+            self.send_response(request.status_code)
+            self.end_headers()
+            shutil.copyfileobj(f, self.wfile)
+        except (ConnectionRefusedError, requests.exceptions.ConnectTimeout):
+            self.log_message("{} not reachable".format(self.path))
+        except BlacklistedException:
+            self.send_response(400)
+            self.end_headers()
+            self.log_message("Suspicious behaviour detected at {}".format(self.path))
+
+
+    def filter_request(self, body):
+        """
+        Return True if the request should be filtered
+        """
+        if self.path in blacklisted:
+            self.log_message("{} is blacklisted".format(self.path))
+            raise BlacklistedException()
+        if len(body) < 32 and b"OpenSSH" in body:
+            self.log_message("Openssh detected")
+            self.blacklist(self.path)
+            raise BlacklistedException()
+
+    def blacklist(self, host):
+        blacklisted.add(host)
+        self.log_message("Added {} to the blacklist".format(self.path))
+        self.log_message("Blacklist : {}".format(blacklisted))
 
 
 if __name__ == '__main__':

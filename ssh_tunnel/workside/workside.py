@@ -3,6 +3,8 @@ import queue
 import socket
 import sys
 import time
+import hashlib, binascii
+
 from threading import Thread
 try:
     import requests
@@ -10,8 +12,9 @@ except ImportError:
     print("Please download requests with `pip3 install requests`")
     sys.exit(1)
 
-ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+from ssh_tunnel.commons import Cipherer
 
+ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 def try_post(url, interval, *args, **kwargs):
     while True:
@@ -24,10 +27,11 @@ def try_post(url, interval, *args, **kwargs):
             time.sleep(interval)
 
 class SSHReadThread(Thread):
-    def __init__(self, socket, baseurl, interval, *args, **kwargs):
+    def __init__(self, socket, baseurl, interval, cipherer, *args, **kwargs):
         self.socket = socket
         self.baseurl = baseurl
         self.interval = interval
+        self.cipherer = cipherer
         super(*args, **kwargs)
         Thread.__init__(self)
 
@@ -36,14 +40,16 @@ class SSHReadThread(Thread):
             r = try_post(self.baseurl+"/down", self.interval)
             if len(r.content):
                 print("Sending data to SSH server : "+str(r.content))
-                self.socket.send(r.content)
+                content = self.cipherer.decrypt(r.content)
+                self.socket.send(content)
 
 
 class SSHWriteThread(Thread):
-    def __init__(self, socket, baseurl, interval, *args, **kwargs):
+    def __init__(self, socket, baseurl, interval, cipherer, *args, **kwargs):
         self.socket = socket
         self.baseurl = baseurl
         self.interval = interval
+        self.cipherer = cipherer
         super(*args, **kwargs)
         Thread.__init__(self)
 
@@ -51,18 +57,20 @@ class SSHWriteThread(Thread):
         while True:
             rawdata = self.socket.recv(2048)
             print("Read data from SSH server :"+str(rawdata))
-            try_post(self.baseurl+"/up", self.interval, data=rawdata)
+            encrypted_rawdata = self.cipherer.encrypt(rawdata)
+            try_post(self.baseurl+"/up", self.interval, data=encrypted_rawdata)
 
 
-def run(baseurl="http://localhost:8000", ssh_port=22, bind="", interval=1):
+def run(passphrase, baseurl="http://localhost:8000", ssh_port=22, bind="", interval=1):
     try:
         ssh_socket.connect((bind, ssh_port))
     except ConnectionRefusedError:
         print("Cannot connect to local sshd on port {}".format(ssh_port))
         sys.exit(1)
 
-    read_thread = SSHReadThread(ssh_socket, baseurl, interval)
-    write_thread = SSHWriteThread(ssh_socket, baseurl, interval)
+    cipherer = Cipherer(passphrase)
+    read_thread = SSHReadThread(ssh_socket, baseurl, interval, cipherer)
+    write_thread = SSHWriteThread(ssh_socket, baseurl, interval, cipherer)
 
     read_thread.start()
     write_thread.start()
@@ -88,5 +96,7 @@ if __name__ == '__main__':
                         default=1,
                         nargs='?',
                         help='Specify alternate interval between http requests [default: 1 s]')
+    parser.add_argument('passphrase', action='store',
+                        help='Specify the passphrase to use')
     args = parser.parse_args()
-    run(ssh_port=args.ssh_port, baseurl=args.baseurl, bind=args.bind, interval=float(args.interval))
+    run(args.passphrase, ssh_port=args.ssh_port, baseurl=args.baseurl, bind=args.bind, interval=float(args.interval))

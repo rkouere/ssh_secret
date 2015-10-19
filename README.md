@@ -49,11 +49,11 @@ the internal port), the http server will start expose those data to the ``/down`
 
 Ensure you have a running sshd server, listening on port 22. ``ssh localhost`` should return.
 
-Run ``python3 workside/workside.py``
+Run ``python3 -m ssh_tunnel.workside.workside <passphrase>``
 
 ### Client side ###
 
-Run ``python3 homeside/homeside.py``
+Run ``python3 -m ssh_tunnel.homeside.homeside <passphrase>``
 
 Then run a ssh client to the listening port (2222 by default) : ``ssh localhost -p 2222``
 

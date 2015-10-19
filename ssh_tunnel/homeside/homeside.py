@@ -8,12 +8,13 @@ import sys
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
+from ssh_tunnel.commons import Cipherer
 
 _ssh_server = None
 incoming_content = queue.Queue()
 outgoing_content = queue.Queue()
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+cipherer = None
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -44,6 +45,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_down(self):
         try:
             body = incoming_content.get(timeout=1)
+            body = cipherer.encrypt(body)
         except queue.Empty:
             body = b""
 
@@ -64,6 +66,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
+        body = cipherer.decrypt(body)
         outgoing_content.put(body)
         self.send_response(201)
         self.send_header("Content-type", "raw")
@@ -123,9 +126,10 @@ class SSHThread(Thread):
             client_writing_thread.run()
 
 class HTTPThread(Thread):
-    def __init__(self, bind, port, *args, **kwargs):
+    def __init__(self, bind, port, cipherer, *args, **kwargs):
         self.bind = bind
         self.port = port
+        self.cipherer = cipherer
         super(*args, **kwargs)
         Thread.__init__(self)
 
@@ -137,13 +141,15 @@ class HTTPThread(Thread):
         self.server.serve_forever()
 
 
-def run(protocol="HTTP/1.0", http_port=8000, ssh_port=2222, bind=""):
+def run(passphrase, protocol="HTTP/1.0", http_port=8000, ssh_port=2222, bind=""):
     """This run a listening ssh thread, a listening http thread, then
     starts an external ssh client connecting to the listining ssh port
     """
     # Instanciate the needed threads
+    global cipherer
+    cipherer = Cipherer(passphrase)
     ssh_thread = SSHThread(bind, ssh_port, ssh_socket)
-    http_thread = HTTPThread(bind, http_port)
+    http_thread = HTTPThread(bind, http_port, cipherer)
 
     try:
         ssh_thread.start()
@@ -171,5 +177,7 @@ if __name__ == '__main__':
                         default=2222, type=int,
                         nargs='?',
                         help='Specify alternate port for ssh interface [default: 2222]')
+    parser.add_argument('passphrase', action='store',
+                        help='Specify the passphrase to use. Must be the same that the one specified on workside')
     args = parser.parse_args()
-    run(ssh_port=args.ssh_port, http_port=args.http_port, bind=args.bind)
+    run(args.passphrase, ssh_port=args.ssh_port, http_port=args.http_port, bind=args.bind)

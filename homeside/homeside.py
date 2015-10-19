@@ -5,6 +5,7 @@ import queue
 import shutil
 import socket
 import sys
+import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 
@@ -46,7 +47,6 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         except queue.Empty:
             body = b""
 
-        print(body)
         f = io.BytesIO()
         f.write(body)
         f.seek(0)
@@ -64,12 +64,14 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
-        print("Read body of size {}".format(len(body)))
         outgoing_content.put(body)
         self.send_response(201)
         self.send_header("Content-type", "raw")
         self.end_headers()
-        # This needs to be done after sending the headers
+
+    def log_message(self, format, *args):
+        # Mute the default message logger
+        return
 
 
 class SSHReadThread(Thread):
@@ -93,9 +95,7 @@ class SSHWriteThread(Thread):
     def run(self):
         while True:
             rawdata = outgoing_content.get()
-            print(rawdata)
             len = self.socket.send(rawdata)
-            print("{} bytes sent to ssh client".format(len))
 
 
 class SSHThread(Thread):
@@ -138,8 +138,8 @@ class HTTPThread(Thread):
 
 
 def run(protocol="HTTP/1.0", http_port=8000, ssh_port=2222, bind=""):
-    """
-    This run a listening ssh thread, and a listening http thread.
+    """This run a listening ssh thread, a listening http thread, then
+    starts an external ssh client connecting to the listining ssh port
     """
     # Instanciate the needed threads
     ssh_thread = SSHThread(bind, ssh_port, ssh_socket)
@@ -148,6 +148,8 @@ def run(protocol="HTTP/1.0", http_port=8000, ssh_port=2222, bind=""):
     try:
         ssh_thread.start()
         http_thread.start()
+        print("Starting external ssh client")
+        os.system('ssh -v localhost -p {}'.format(ssh_port))
 
     except Exception as e:
         print(e)

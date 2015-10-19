@@ -1,7 +1,5 @@
 import requests
-import urllib
 import argparse
-import logging
 import shutil
 import io
 import binascii
@@ -9,11 +7,12 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 blacklisted = set()
 
-class BlacklistedException(Exception): pass
+
+class BlacklistedException(Exception):
+    pass
+
 
 class ProxyHandler(BaseHTTPRequestHandler):
-
-
     def do_GET(self):
         try:
             request = requests.get(self.path)
@@ -50,7 +49,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.end_headers()
             self.log_message("Suspicious behaviour detected at {}".format(self.path))
-
 
     def filter_request(self, body):
         """

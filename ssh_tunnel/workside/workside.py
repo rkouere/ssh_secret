@@ -1,9 +1,7 @@
 import argparse
-import queue
 import socket
 import sys
 import time
-import hashlib, binascii
 
 from threading import Thread
 try:
@@ -16,6 +14,7 @@ from ssh_tunnel.commons import Cipherer
 
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+
 def try_post(url, interval, *args, **kwargs):
     while True:
         try:
@@ -25,6 +24,7 @@ def try_post(url, interval, *args, **kwargs):
         except requests.exceptions.ConnectionError:
             print("Connection to {} failed, retry in {} sec".format(url, interval))
             time.sleep(interval)
+
 
 class SSHReadThread(Thread):
     def __init__(self, socket, baseurl, interval, cipherer, *args, **kwargs):

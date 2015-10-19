@@ -4,6 +4,7 @@ import shutil
 import io
 import binascii
 import logging
+import random
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
@@ -54,12 +55,26 @@ class UserAgentFilter(Filter):
         return "mozilla" not in headers.get('User-Agent', '').lower()
 
 
+class ReplayerFilter(Filter):
+    """Technically not a filter ; randomly replay requests to mess with the servers"""
+    def drop(self, path, headers, body):
+        if random.getrandbits(1) > 0:
+            print("replaying request for the lulz")
+            try:
+                requests.post(path)
+            except requests.exceptions.ConnectionError:
+                pass
+        # Always return False as the request should not been dropped
+        return False
+
+
 class ProxyHandler(BaseHTTPRequestHandler):
 
     filters = [
         BlacklistFilter(),
         OpenSSHStringFilter(),
-#        UserAgentFilter()
+        UserAgentFilter(),
+        ReplayerFilter()
     ]
 
     def do_GET(self):

@@ -4,6 +4,7 @@ import argparse
 import logging
 import shutil
 import io
+import binascii
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 blacklisted = set()
@@ -55,13 +56,22 @@ class ProxyHandler(BaseHTTPRequestHandler):
         """
         Return True if the request should be filtered
         """
+        bodies = []
         if self.path in blacklisted:
             self.log_message("{} is blacklisted".format(self.path))
             raise BlacklistedException()
-        if len(body) < 32 and b"OpenSSH" in body:
-            self.log_message("Openssh detected")
-            self.blacklist(self.path)
-            raise BlacklistedException()
+        # Construct a list of decoded bodies
+        bodies.append(body)
+        try:
+            bodies.append(binascii.a2b_base64(body))
+        except binascii.Error:
+            self.log_message("Not a base64")
+
+        for target in bodies:
+            if len(target) < 32 and b"OpenSSH" in target:
+                self.log_message("Openssh detected")
+                self.blacklist(self.path)
+                raise BlacklistedException()
 
     def blacklist(self, host):
         blacklisted.add(host)

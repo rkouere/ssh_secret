@@ -55,7 +55,15 @@ Run ``python3 -m ssh_tunnel.workside.workside <passphrase>``
 
 Run ``python3 -m ssh_tunnel.homeside.homeside <passphrase>``
 
-Then run a ssh client to the listening port (2222 by default) : ``ssh localhost -p 2222``
-
+This command run a thread with an ssh client, using the underlaying http server ``workside``
 
 If everything success, you should be given a shell with the ssh client.
+
+### Proxy ###
+
+Run ``python3 -m sshtunnel.workside.proxy`` to run a proxy which block SSH-over-HTTP
+
+### Tests ###
+
+Run ``python3 -m sshtunnel.test.test_global`` to run a test with both side communicating on a local server. You will get the result of a regular ``ssh localhost`` if everything succeed.
+

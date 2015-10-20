@@ -61,9 +61,9 @@ If everything success, you should be given a shell with the ssh client.
 
 ### Proxy ###
 
-Run ``python3 -m sshtunnel.workside.proxy`` to run a proxy which block SSH-over-HTTP
+Run ``python3 -m ssh_tunnel.workside.proxy`` to run a proxy which block SSH-over-HTTP
 
 ### Tests ###
 
-Run ``python3 -m sshtunnel.test.test_global`` to run a test with both side communicating on a local server. You will get the result of a regular ``ssh localhost`` if everything succeed.
+Run ``python3 -m ssh_tunnel.test.test_global`` to run a test with both side communicating on a local server. You will get the result of a regular ``ssh localhost`` if everything succeed.
 

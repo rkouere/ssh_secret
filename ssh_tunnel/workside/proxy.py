@@ -65,8 +65,8 @@ class OpenSSHStringFilter(Filter):
 
 
 class BlacklistFilter(Filter):
+    """Drops a request if the uri is in a global blacklist"""
     def drop(self, path, headers, body):
-        """Drops a request if the uri is in a global blacklist"""
         return path in blacklisted_uris
 
     def __str__(self):
@@ -101,6 +101,7 @@ class ReplayerFilter(Filter):
 class ProxyHandler(BaseHTTPRequestHandler):
 
     filters = []
+    verbose = False
 
     @property
     def https(self):
@@ -126,7 +127,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         shutil.copyfileobj(f, self.wfile)
 
     def do_GET(self):
-        print(self.url)
+        if self.verbose:
+            print(self.headers)
         try:
             request = requests.get(self.url)
         except ConnectionRefusedError:
@@ -141,6 +143,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
+        if self.verbose:
+            print(self.headers)
+            print(body)
         if self.filter_request(body):
             return
         try:
@@ -181,14 +186,19 @@ if __name__ == '__main__':
                              '[default: all interfaces]')
     parser.add_argument('--port', '-p', default=8008, type=int,
                         help='Specify alternate port [default: 8008]')
+    parser.add_argument('--verbose', '-v', action="store_true",
+                        help='Toogle verbose mode')
     parser.add_argument('filters', default="all", type=str,
                         help='A list of filters. Available are {}. [default: all]'.format(list_filters() + ['all', 'none']))
     args = parser.parse_args()
     print("Server starting")
+    if args.verbose:
+        print("Verbose on")
     filters = load_filters_from_string(args.filters)
     for f in filters:
         print("Installing filter {}".format(f.__name__))
         ProxyHandler.filters.append(f())
+    ProxyHandler.verbose = args.verbose
     proxy = ThreadedProxyServer(("", args.port), ProxyHandler)
     print("Proxy listening on port {}".format(args.port))
     proxy.serve_forever()

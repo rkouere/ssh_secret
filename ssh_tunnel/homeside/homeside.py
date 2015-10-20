@@ -69,7 +69,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         f = io.BytesIO()
         f.write(body)
         f.seek(0)
-        self.send_response(200)
+        self.send_response(201)
         self.send_header("Content-type", "raw")
         self.send_header("Content-Length", len(body))
         self.end_headers()
@@ -88,7 +88,9 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         if len(body) > 0 and identifier not in outgoing_done:
             outgoing_content.put(body)
             outgoing_done[identifier] = body
-        self.send_response(201)
+            self.send_response(201)
+        else:
+            self.send_response(200)
         self.send_header("Content-type", "raw")
         self.end_headers()
 
@@ -144,6 +146,7 @@ class SSHThread(Thread):
             client_writing_thread.start()
             client_reading_thread.run()
             client_writing_thread.run()
+
 
 class HTTPThread(Thread):
     def __init__(self, bind, port, cipherer, *args, **kwargs):

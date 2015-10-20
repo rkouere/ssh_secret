@@ -40,7 +40,7 @@ class SSHReadThread(Thread):
         while True:
             request_id = random.getrandbits(128)
             r = try_post(self.baseurl+"/down/{}".format(request_id), self.interval)
-            if len(r.content):
+            if r.status_code == 201 and len(r.content):
                 content = self.cipherer.decrypt(r.content)
                 self.socket.send(content)
 
@@ -59,7 +59,9 @@ class SSHWriteThread(Thread):
             rawdata = self.socket.recv(2048)
             encrypted_rawdata = self.cipherer.encrypt(rawdata)
             request_id = random.getrandbits(128)
-            try_post(self.baseurl+"/up/{}".format(request_id), self.interval, data=encrypted_rawdata)
+            r = try_post(self.baseurl+"/up/{}".format(request_id), self.interval, data=encrypted_rawdata)
+            while r.status_code != 201:
+                r = try_post(self.baseurl+"/up/{}".format(request_id), self.interval, data=encrypted_rawdata)
 
 
 def run(passphrase, baseurl="http://localhost:8000", ssh_port=22, bind="", interval=0.1):

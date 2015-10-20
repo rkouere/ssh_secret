@@ -6,6 +6,7 @@ import binascii
 import logging
 import random
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 
 
 blacklisted_uris = set()
@@ -22,6 +23,9 @@ class Filter():
     def drop(self, path, headers, body):
         """Returns True if the request is suspitious and should be filtered"""
         raise Exception("Should be implemented")
+
+    def __str__(self):
+        return "Filter"
 
 
 class OpenSSHStringFilter(Filter):
@@ -42,17 +46,26 @@ class OpenSSHStringFilter(Filter):
                 return True
         return False
 
+    def __str__(self):
+        return "OpenSSHString"
+
 
 class BlacklistFilter(Filter):
     def drop(self, path, headers, body):
         """Drops a request if the uri is in a global blacklist"""
         return path in blacklisted_uris
 
+    def __str__(self):
+        return "Blacklist"
+
 
 class UserAgentFilter(Filter):
     """Filter illegitimate User Agent"""
     def drop(self, path, headers, body):
         return "mozilla" not in headers.get('User-Agent', '').lower()
+
+    def __str__(self):
+        return "Useragent"
 
 
 class ReplayerFilter(Filter):
@@ -67,21 +80,43 @@ class ReplayerFilter(Filter):
         # Always return False as the request should not been dropped
         return False
 
+    def __str__(self):
+        return "Replayer"
+
 
 class ProxyHandler(BaseHTTPRequestHandler):
 
-    filters = [
-        BlacklistFilter(),
-        OpenSSHStringFilter(),
-        UserAgentFilter(),
-        ReplayerFilter()
-    ]
+    filters = []
+
+    @property
+    def https(self):
+        return self.path.endswith(":443")
+
+    @property
+    def url(self):
+        if self.https:
+            return "https://"+self.path
+        else:
+            return self.path
+
+    def do_CONNECT(self):
+        try:
+            request = requests.request("connect", self.url)
+        except ConnectionRefusedError:
+            self.log_message("{} not reachable".format(self.url))
+        f = io.BytesIO()
+        f.write(request.content)
+        f.seek(0)
+        self.send_response(request.status_code)
+        self.end_headers()
+        shutil.copyfileobj(f, self.wfile)
 
     def do_GET(self):
+        print(self.url)
         try:
-            request = requests.get(self.path)
+            request = requests.get(self.url)
         except ConnectionRefusedError:
-            self.log_message("{} not reachable".format(self.path))
+            self.log_message("{} not reachable".format(self.url))
         f = io.BytesIO()
         f.write(request.content)
         f.seek(0)
@@ -95,8 +130,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if self.filter_request(body):
             return
         try:
-            request = requests.post(self.path, data=body)
-            if self.filter_request(request.content, path=self.path, headers=request.headers):
+            request = requests.post(self.url, data=body)
+            if self.filter_request(request.content, path=self.url, headers=request.headers):
                 return
             f = io.BytesIO()
             f.write(request.content)
@@ -105,11 +140,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.end_headers()
             shutil.copyfileobj(f, self.wfile)
         except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            self.log_message("{} not reachable".format(self.path))
+            self.log_message("{} not reachable".format(self.url))
 
     def filter_request(self, body, path=None, headers=None):
         """
-        Respond with 400 if a request is suspicious
+        Respond with 400 if a request is suspicious
         """
         if not headers:
             headers = self.headers
@@ -119,8 +154,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if f.drop(self.path, self.headers, body):
                 self.send_response(400)
                 self.end_headers()
-                self.log_message("Suspicious behaviour detected at {} by {}".format(self.path, f))
+                self.log_message("Suspicious behaviour detected at {} by filter {}".format(self.path, f))
 
+
+class ThreadedProxyServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -131,6 +169,11 @@ if __name__ == '__main__':
                         help='Specify alternate port [default: 8008]')
     args = parser.parse_args()
     print("Server starting")
-    proxy = HTTPServer(("", args.port), ProxyHandler)
+    ProxyHandler.filters = [
+        BlacklistFilter(),
+        OpenSSHStringFilter(),
+        UserAgentFilter(),
+        ReplayerFilter()]
+    proxy = ThreadedProxyServer(("", args.port), ProxyHandler)
     print("Proxy listening on port {}".format(args.port))
     proxy.serve_forever()

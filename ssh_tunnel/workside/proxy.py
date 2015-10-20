@@ -5,6 +5,7 @@ import io
 import binascii
 import logging
 import random
+import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
@@ -16,6 +17,19 @@ def blacklist(path):
     blacklisted_uris.add(path)
     logging.info("Added {} to the blacklist".format(path))
     logging.info("Blacklist : {}".format(blacklisted_uris))
+
+
+def load_filters_from_string(string):
+    if string == "none":
+        return []
+    if string == "all":
+        string = " ".join(list_filters())
+    thismodule = sys.modules[__name__]
+    return [getattr(thismodule, classname) for classname in string.split(' ')]
+
+
+def list_filters():
+    return [f.__name__ for f in Filter.__subclasses__()]
 
 
 class Filter():
@@ -167,13 +181,14 @@ if __name__ == '__main__':
                              '[default: all interfaces]')
     parser.add_argument('--port', '-p', default=8008, type=int,
                         help='Specify alternate port [default: 8008]')
+    parser.add_argument('filters', default="all", type=str,
+                        help='A list of filters. Available are {}. [default: all]'.format(list_filters() + ['all', 'none']))
     args = parser.parse_args()
     print("Server starting")
-    ProxyHandler.filters = [
-        BlacklistFilter(),
-        OpenSSHStringFilter(),
-        UserAgentFilter(),
-        ReplayerFilter()]
+    filters = load_filters_from_string(args.filters)
+    for f in filters:
+        print("Installing filter {}".format(f.__name__))
+        ProxyHandler.filters.append(f())
     proxy = ThreadedProxyServer(("", args.port), ProxyHandler)
     print("Proxy listening on port {}".format(args.port))
     proxy.serve_forever()

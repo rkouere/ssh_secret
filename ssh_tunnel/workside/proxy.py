@@ -118,7 +118,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         try:
             request = requests.request("connect", self.url)
         except ConnectionRefusedError:
-            self.log_message("{} not reachable".format(self.url))
+            logging.info("{} not reachable".format(self.url))
+            self.err400()
         f = io.BytesIO()
         f.write(request.content)
         f.seek(0)
@@ -131,14 +132,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
             print(self.headers)
         try:
             request = requests.get(self.url)
-        except ConnectionRefusedError:
-            self.log_message("{} not reachable".format(self.url))
-        f = io.BytesIO()
-        f.write(request.content)
-        f.seek(0)
-        self.send_response(request.status_code)
-        self.end_headers()
-        shutil.copyfileobj(f, self.wfile)
+            f = io.BytesIO()
+            f.write(request.content)
+            f.seek(0)
+            self.send_response(request.status_code)
+            self.end_headers()
+            shutil.copyfileobj(f, self.wfile)
+        except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            logging.info("{} not reachable".format(self.url))
+            self.err400()
 
     def do_POST(self):
         content_len = int(self.headers.get('Content-Length', 0))
@@ -160,6 +162,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             shutil.copyfileobj(f, self.wfile)
         except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_message("{} not reachable".format(self.url))
+            self.err400()
 
     def filter_request(self, body, path=None, headers=None):
         """
@@ -171,9 +174,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
             path = self.path
         for f in self.filters:
             if f.drop(self.path, self.headers, body):
-                self.send_response(400)
-                self.end_headers()
+                self.err400()
                 self.log_message("Suspicious behaviour detected at {} by filter {}".format(self.path, f))
+
+    def err400(self):
+        """Ends the current request with a 400 error code"""
+        f = io.BytesIO()
+        f.write(b"You wrong I'm a teapot LOL1")
+        f.seek(0)
+        self.send_response(418)
+        self.end_headers()
+        shutil.copyfileobj(f, self.wfile)
 
 
 class ThreadedProxyServer(ThreadingMixIn, HTTPServer):

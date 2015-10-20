@@ -51,11 +51,11 @@ class OpenSSHStringFilter(Filter):
         try:
             bodies.append(binascii.a2b_base64(body))
         except binascii.Error:
-            print("not a base64")
+            logging.debug("not a base64")
 
         for target in bodies:
             if len(target) < 32 and b"OpenSSH" in target:
-                print("Openssh detected")
+                logging.info("Openssh detected")
                 blacklist(path)
                 return True
         return False
@@ -86,7 +86,7 @@ class ReplayerFilter(Filter):
     """Technically not a filter ; randomly replay requests to mess with the servers"""
     def drop(self, path, headers, body):
         if random.getrandbits(1) > 0:
-            print("replaying request for the lulz")
+            logging.info("replaying request for the lulz")
             try:
                 requests.post(path)
             except requests.exceptions.ConnectionError:
@@ -129,7 +129,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.verbose:
-            print(self.headers)
+            logging.info(self.headers)
         try:
             request = requests.get(self.url)
             f = io.BytesIO()
@@ -146,8 +146,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
         if self.verbose:
-            print(self.headers)
-            print(body)
+            logging.info(self.headers)
+            logging.info(body)
         if self.filter_request(body):
             return
         try:
@@ -200,16 +200,20 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', '-v', action="store_true",
                         help='Toogle verbose mode')
     parser.add_argument('filters', default="all", type=str,
-                        help='A list of filters. Available are {}. [default: all]'.format(list_filters() + ['all', 'none']))
+                        help='A list of filters. Available are {}. [default: all]'.format(list_filters() +
+                                                                                          ['all',
+                                                                                           'none']))
     args = parser.parse_args()
-    print("Server starting")
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Server starting")
     if args.verbose:
-        print("Verbose on")
+        logging.basicConfig(level=logging.DEBUG)
+        logging.debug("Verbose on")
     filters = load_filters_from_string(args.filters)
     for f in filters:
-        print("Installing filter {}".format(f.__name__))
+        logging.info("Installing filter {}".format(f.__name__))
         ProxyHandler.filters.append(f())
     ProxyHandler.verbose = args.verbose
     proxy = ThreadedProxyServer(("", args.port), ProxyHandler)
-    print("Proxy listening on port {}".format(args.port))
+    logging.info("Proxy listening on port {}".format(args.port))
     proxy.serve_forever()

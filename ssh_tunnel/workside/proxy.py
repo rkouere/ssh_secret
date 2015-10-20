@@ -6,6 +6,7 @@ import binascii
 import logging
 import random
 import sys
+from urllib.parse import urlparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
@@ -98,6 +99,40 @@ class ReplayerFilter(Filter):
         return "Replayer"
 
 
+class RandomDetectorFilter(Filter):
+    """Drop requests if they contain too much random data"""
+    total_random = 0
+    total_body = 0
+    rate_by_host = {}
+    RANDOM_THRESHOLD = 0.80
+    # Install a custom error handler for decode()
+
+    def random_factor(self, body):
+        count = 0
+        for b in bytearray(body):
+            if 0x20 <= b <= 0xfe:
+                count += 1
+        return count
+
+    def random_for_host(self, host):
+        return (self.rate_by_host[host]['rate'] / self.rate_by_host[host]['total'])
+
+    def drop(self, path, headers, body):
+        if len(body):
+            rate = self.random_factor(body)
+            host = urlparse(path).netloc
+            if host not in self.rate_by_host:
+                self.rate_by_host[host] = {'rate': 0, 'total': 0, 'count': 0}
+            self.rate_by_host[host]['rate'] += rate
+            self.rate_by_host[host]['total'] += len(body)
+            self.rate_by_host[host]['count'] += 1
+            logging.info("Random rate : {} (at {})".format(self.random_for_host(host), path))
+            return self.rate_by_host[host]['count'] > 2 and self.random_for_host(host) < self.RANDOM_THRESHOLD
+
+    def __str__(self):
+        return "RandomDetector"
+
+
 class ProxyHandler(BaseHTTPRequestHandler):
 
     filters = []
@@ -132,6 +167,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logging.info(self.headers)
         try:
             request = requests.get(self.url)
+            if self.filter_request(request.content):
+                return
             f = io.BytesIO()
             f.write(request.content)
             f.seek(0)
@@ -180,11 +217,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def err400(self):
         """Ends the current request with a 400 error code"""
         f = io.BytesIO()
-        f.write(b"You wrong I'm a teapot LOL1")
+        f.write(b"")
         f.seek(0)
         self.send_response(418)
         self.end_headers()
-        shutil.copyfileobj(f, self.wfile)
+#        shutil.copyfileobj(f, self.wfile)
 
 
 class ThreadedProxyServer(ThreadingMixIn, HTTPServer):

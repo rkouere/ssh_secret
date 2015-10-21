@@ -251,7 +251,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
         f.seek(0)
         self.send_response(418)
         self.end_headers()
-#        shutil.copyfileobj(f, self.wfile)
 
 
 class ThreadedProxyServer(ThreadingMixIn, HTTPServer):

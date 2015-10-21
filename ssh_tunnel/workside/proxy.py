@@ -40,7 +40,7 @@ class Filter():
         raise Exception("Should be implemented")
 
     def __str__(self):
-        return "Filter"
+        return self.__name__
 
 
 class OpenSSHStringFilter(Filter):

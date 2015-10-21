@@ -46,7 +46,7 @@ class Filter():
 
 
 class OpenSSHStringFilter(Filter):
-    """Finds the OpenSSH version exchange at the beginnig of the protocol"""
+    """Finds the OpenSSH version exchange at the begining of the protocol"""
     def drop(self, path, headers, body):
         bodies = []
         # Construct a list of decoded bodies
@@ -63,26 +63,17 @@ class OpenSSHStringFilter(Filter):
                 return True
         return False
 
-    def __str__(self):
-        return "OpenSSHString"
-
 
 class BlacklistFilter(Filter):
     """Drops a request if the uri is in a global blacklist"""
     def drop(self, path, headers, body):
         return path in blacklisted_uris
 
-    def __str__(self):
-        return "Blacklist"
-
 
 class UserAgentFilter(Filter):
     """Filter illegitimate User Agent"""
     def drop(self, path, headers, body):
         return "mozilla" not in headers.get('User-Agent', '').lower()
-
-    def __str__(self):
-        return "Useragent"
 
 
 class ReplayerFilter(Filter):
@@ -96,9 +87,6 @@ class ReplayerFilter(Filter):
                 pass
         # Always return False as the request should not been dropped
         return False
-
-    def __str__(self):
-        return "Replayer"
 
 
 class RandomDetectorFilter(Filter):
@@ -130,9 +118,6 @@ class RandomDetectorFilter(Filter):
             self.rate_by_host[host]['count'] += 1
             logging.info("Random rate : {} (at {})".format(self.random_for_host(host), path))
             return self.rate_by_host[host]['count'] > 2 and self.random_for_host(host) < self.RANDOM_THRESHOLD
-
-    def __str__(self):
-        return "RandomDetector"
 
 
 class ProxyHandler(BaseHTTPRequestHandler):

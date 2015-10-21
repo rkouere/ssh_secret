@@ -205,6 +205,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             request = requests.get(self.url)
+            logging.debug("< {}".format(request.headers))
+            logging.debug("< {}".format(request.content))
             if self.filter_request(request.content):
                 return
             f = io.BytesIO()
@@ -226,6 +228,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return
         try:
             request = requests.post(self.url, data=body)
+            logging.debug("< {}".format(request.headers))
+            logging.debug("< {}".format(request.content))
             if self.filter_request(request.content, path=self.url, headers=request.headers):
                 return
             f = io.BytesIO()

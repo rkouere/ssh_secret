@@ -213,6 +213,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
             f.write(request.content)
             f.seek(0)
             self.send_response(request.status_code)
+            for h in request.headers:
+                self.send_header(h, request.headers[h])
             self.end_headers()
             shutil.copyfileobj(f, self.wfile)
         except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
@@ -236,6 +238,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
             f.write(request.content)
             f.seek(0)
             self.send_response(request.status_code)
+            for h in request.headers:
+                self.send_header(h, request.headers[h])
             self.end_headers()
             shutil.copyfileobj(f, self.wfile)
         except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):

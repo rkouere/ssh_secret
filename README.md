@@ -61,7 +61,7 @@ If everything success, you should be given a shell with the ssh client.
 
 ### Proxy ###
 
-Run ``python3 -m ssh_tunnel.workside.proxy`` to run a proxy which block SSH-over-HTTP
+Run ``python3 -m ssh_tunnel.proxy.proxy`` to run a proxy which block SSH-over-HTTP
 
 ### Tests ###
 

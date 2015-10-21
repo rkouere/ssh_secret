@@ -6,8 +6,10 @@ import binascii
 import logging
 import random
 import sys
+import socket
 from urllib.parse import urlparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from http import HTTPStatus
 from socketserver import ThreadingMixIn
 
 
@@ -151,6 +153,42 @@ class ProxyHandler(BaseHTTPRequestHandler):
         else:
             return "http://"+self.path
 
+    def handle_one_request(self):
+        """Handle a single HTTP request.
+        Override the standard request handler to print debug if needed
+        """
+        try:
+            self.raw_requestline = self.rfile.readline(65537)
+            if len(self.raw_requestline) > 65536:
+                self.requestline = ''
+                self.request_version = ''
+                self.command = ''
+                self.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)
+                return
+            if not self.raw_requestline:
+                self.close_connection = True
+                return
+            if not self.parse_request():
+                # An error code has been sent, just exit
+                return
+            mname = 'do_' + self.command
+            if not hasattr(self, mname):
+                self.send_error(
+                    HTTPStatus.NOT_IMPLEMENTED,
+                    "Unsupported method (%r)" % self.command)
+                return
+            method = getattr(self, mname)
+            logging.debug("> {} (from {})".format(self.requestline, self.address_string()))
+            for h in self.headers:
+                logging.debug("> {}: {}".format(h, self.headers[h]))
+            method()
+            self.wfile.flush()  # actually send the response if not already done.
+        except socket.timeout as e:
+            # a read or a write timed out.  Discard this connection
+            self.log_error("Request timed out: %r", e)
+            self.close_connection = True
+            return
+
     def do_CONNECT(self):
         try:
             request = requests.request("connect", self.url)
@@ -165,8 +203,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
         shutil.copyfileobj(f, self.wfile)
 
     def do_GET(self):
-        if self.verbose:
-            logging.info(self.headers)
         try:
             request = requests.get(self.url)
             if self.filter_request(request.content):
@@ -184,9 +220,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
-        if self.verbose:
-            logging.info(self.headers)
-            logging.info(body)
+        logging.debug(">")
+        logging.debug("> {}".format(body))
         if self.filter_request(body):
             return
         try:
@@ -243,11 +278,13 @@ if __name__ == '__main__':
                                                                                           ['all',
                                                                                            'none']))
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
-    logging.info("Server starting")
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
-        logging.debug("Verbose on")
+    else:
+        logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
+    logging.info("Server starting")
+    logging.debug("Verbose on")
     filters = load_filters_from_string(args.filters)
     for f in filters:
         logging.info("Installing filter {}".format(f.__name__))

@@ -146,8 +146,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def url(self):
         if self.https:
             return "https://"+self.path
-        else:
+        elif self.path.startswith("http://"):
             return self.path
+        else:
+            return "http://"+self.path
 
     def do_CONNECT(self):
         try:

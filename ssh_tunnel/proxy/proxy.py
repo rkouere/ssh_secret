@@ -9,7 +9,6 @@ import sys
 import socket
 from urllib.parse import urlparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from http import HTTPStatus
 from socketserver import ThreadingMixIn
 
 
@@ -148,7 +147,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.requestline = ''
                 self.request_version = ''
                 self.command = ''
-                self.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)
+                self.send_error(414)
                 return
             if not self.raw_requestline:
                 self.close_connection = True
@@ -159,7 +158,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             mname = 'do_' + self.command
             if not hasattr(self, mname):
                 self.send_error(
-                    HTTPStatus.NOT_IMPLEMENTED,
+                    405,
                     "Unsupported method (%r)" % self.command)
                 return
             method = getattr(self, mname)

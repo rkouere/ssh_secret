@@ -8,8 +8,8 @@ try:
     from Crypto import Random
 except ImportError:
     print("Please run ``pip3 install pycrypto``")
-    import os
-    os.exit(1)
+    import sys
+    sys.exit(1)
 
 SALT = b'31415916'
 ITERATIONS = 30

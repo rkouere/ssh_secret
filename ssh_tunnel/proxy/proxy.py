@@ -78,10 +78,10 @@ class UserAgentFilter(Filter):
 class ReplayerFilter(Filter):
     """Technically not a filter ; randomly replay requests to mess with the servers"""
     def drop(self, path, headers, body):
-        if random.getrandbits(1) > 0:
+        if random.getrandbits(2) > 3:
             logging.info("replaying request for the lulz")
             try:
-                requests.post(path)
+                requests.post(path, headers=headers, data=body)
             except requests.exceptions.ConnectionError:
                 pass
         # Always return False as the request should not been dropped
@@ -210,7 +210,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_len)
         logging.debug(">")
         logging.debug("> {}".format(body))
-        if self.filter_request(body):
+        if self.filter_request(body, excludes=[ReplayerFilter]):
+            # Do not use the ReplayerFilter on this round as it mess too much
             return
         try:
             request = requests.post(self.url, data=body)
@@ -230,7 +231,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.log_message("{} not reachable".format(self.url))
             self.err400()
 
-    def filter_request(self, body, path=None, headers=None):
+    def filter_request(self, body, path=None, headers=None, excludes=[]):
         """
         Respond with 400 if a request is suspicious
         """
@@ -239,7 +240,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if not path:
             path = self.path
         for f in self.filters:
-            if f.drop(self.path, self.headers, body):
+            if f.__class__ not in excludes and f.drop(self.path, self.headers, body):
                 self.err400()
                 self.log_message("Suspicious behaviour detected at {} by filter {}".format(self.path, f))
 
@@ -271,9 +272,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
+        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
     logging.info("Server starting")
     logging.debug("Verbose on")
     filters = load_filters_from_string(args.filters)

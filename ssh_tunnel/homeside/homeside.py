@@ -54,17 +54,17 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         Expose data to the ssh server
         """
         identifier = parse_id(self.path)
-        try:
-            if identifier in incoming_done:
-                body = incoming_done[identifier]
-                print("already done this down, resend")
-                print(body)
-            else:
+        if identifier in incoming_done:
+            body = incoming_done[identifier]
+            print("Already done /down/{}, resend {}".format(identifier, body))
+        else:
+            try:
                 body = incoming_content.get(timeout=1)
-                incoming_done[identifier] = body
+                print("Homeside : Handle new down {}".format(identifier))
+            except queue.Empty:
+                body = b""
+            incoming_done[identifier] = body
             body = cipherer.encrypt(body)
-        except queue.Empty:
-            body = b""
 
         f = io.BytesIO()
         f.write(body)

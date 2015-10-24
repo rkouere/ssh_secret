@@ -2,121 +2,16 @@ import requests
 import argparse
 import shutil
 import io
-import binascii
 import logging
-import random
-import sys
 import socket
-from urllib.parse import urlparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-
-
-blacklisted_uris = set()
-
-
-def blacklist(path):
-    blacklisted_uris.add(path)
-    logging.info("Added {} to the blacklist".format(path))
-    logging.info("Blacklist : {}".format(blacklisted_uris))
-
-
-def load_filters_from_string(string):
-    if string == "none":
-        return []
-    if string == "all":
-        string = " ".join(list_filters())
-    thismodule = sys.modules[__name__]
-    return [getattr(thismodule, classname) for classname in string.split(' ')]
-
-
-def list_filters():
-    return [f.__name__ for f in Filter.__subclasses__()]
-
-
-class Filter():
-    """Abstract class which defines a Filter plugin. It must implement the ``drop`` method"""
-    def drop(self, path, headers, body):
-        """Returns True if the request is suspitious and should be filtered"""
-        raise Exception("Should be implemented")
-
-    def __str__(self):
-        return self.__name__
-
-
-class OpenSSHStringFilter(Filter):
-    """Finds the OpenSSH version exchange at the begining of the protocol"""
-    def drop(self, path, headers, body):
-        bodies = []
-        # Construct a list of decoded bodies
-        bodies.append(body)
-        try:
-            bodies.append(binascii.a2b_base64(body))
-        except binascii.Error:
-            logging.debug("not a base64")
-
-        for target in bodies:
-            if len(target) < 32 and b"OpenSSH" in target:
-                logging.info("Openssh detected")
-                blacklist(path)
-                return True
-        return False
-
-
-class BlacklistFilter(Filter):
-    """Drops a request if the uri is in a global blacklist"""
-    def drop(self, path, headers, body):
-        return path in blacklisted_uris
-
-
-class UserAgentFilter(Filter):
-    """Filter illegitimate User Agent"""
-    def drop(self, path, headers, body):
-        return "mozilla" not in headers.get('User-Agent', '').lower()
-
-
-class ReplayerFilter(Filter):
-    """Technically not a filter ; randomly replay requests to mess with the servers"""
-    def drop(self, path, headers, body):
-        if random.getrandbits(2) > 3:
-            logging.info("replaying request for the lulz")
-            try:
-                requests.post(path, headers=headers, data=body)
-            except requests.exceptions.ConnectionError:
-                pass
-        # Always return False as the request should not been dropped
-        return False
-
-
-class RandomDetectorFilter(Filter):
-    """Drop requests if they contain too much random data"""
-    total_random = 0
-    total_body = 0
-    rate_by_host = {}
-    RANDOM_THRESHOLD = 0.80
-    # Install a custom error handler for decode()
-
-    def random_factor(self, body):
-        count = 0
-        for b in bytearray(body):
-            if 0x20 <= b <= 0xfe:
-                count += 1
-        return count
-
-    def random_for_host(self, host):
-        return (self.rate_by_host[host]['rate'] / self.rate_by_host[host]['total'])
-
-    def drop(self, path, headers, body):
-        if len(body):
-            rate = self.random_factor(body)
-            host = urlparse(path).netloc
-            if host not in self.rate_by_host:
-                self.rate_by_host[host] = {'rate': 0, 'total': 0, 'count': 0}
-            self.rate_by_host[host]['rate'] += rate
-            self.rate_by_host[host]['total'] += len(body)
-            self.rate_by_host[host]['count'] += 1
-            logging.info("Random rate : {} (at {})".format(self.random_for_host(host), path))
-            return self.rate_by_host[host]['count'] > 2 and self.random_for_host(host) < self.RANDOM_THRESHOLD
+from ssh_tunnel.proxy.filters import list_filters, load_filters_from_string
+from ssh_tunnel.proxy.filters.ReplayerFilter import ReplayerFilter
+from ssh_tunnel.proxy.filters.OpenSSHStringFilter import OpenSSHStringFilter  # nopep8
+from ssh_tunnel.proxy.filters.BlacklistFilter import BlacklistFilter  # nopep8
+from ssh_tunnel.proxy.filters.RandomDetectorFilter import RandomDetectorFilter  # nopep8
+from ssh_tunnel.proxy.filters.UserAgentFilter import UserAgentFilter  # nopep8
 
 
 class ProxyHandler(BaseHTTPRequestHandler):

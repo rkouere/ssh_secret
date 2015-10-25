@@ -17,7 +17,6 @@ from ssh_tunnel.proxy.filters.UserAgentFilter import UserAgentFilter  # nopep8
 class ProxyHandler(BaseHTTPRequestHandler):
 
     filters = []
-    verbose = False
 
     @property
     def https(self):
@@ -125,7 +124,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         for f in self.filters:
             if f.__class__ not in excludes and f.drop(self.url, self.headers, body):
                 self.err400()
-                self.log_message("Suspicious behaviour detected at {} by filter {}".format(self.url, f))
+                logging.info("Suspicious behaviour detected at {} by filter {}".format(self.url, f))
 
     def err400(self):
         """Ends the current request with a 400 error code"""

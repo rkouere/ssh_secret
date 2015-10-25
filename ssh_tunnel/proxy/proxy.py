@@ -185,9 +185,10 @@ if __name__ == '__main__':
     logging.info("Server starting")
     logging.debug("Verbose on")
     filters = load_filters_from_string(args.filters)
-    for f in filters:
-        logging.info("Installing filter {}".format(f.__name__))
-        ProxyHandler.filters.append(f())
+    for _filter in filters:
+        f = _filter()
+        logging.info("Installing filter {}".format(str(f)))
+        ProxyHandler.filters.append(f)
     ProxyHandler.verbose = args.verbose
     proxy = ThreadedProxyServer(("", args.port), ProxyHandler)
     logging.info("Proxy listening on port {}".format(args.port))

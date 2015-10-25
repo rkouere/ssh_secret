@@ -38,7 +38,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logging.error("Failed to read request line : {}".format(self.request))
                 self.close_connection = True
                 return
-            logging.info(self.raw_requestline)
             if len(self.raw_requestline) > 65536:
                 self.requestline = ''
                 self.request_version = ''

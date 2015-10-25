@@ -20,8 +20,6 @@ class OpenSSHStringFilter(Filter):
         bodies.append(body)
         try:
             bodies.append(binascii.a2b_base64(body))
-            print("=======================")
-            print(bodies)
         except binascii.Error:
             logging.debug("not a base64")
 

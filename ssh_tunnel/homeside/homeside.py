@@ -56,11 +56,9 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         identifier = parse_id(self.path)
         if identifier in incoming_done:
             body = incoming_done[identifier]
-            print("Already done /down/{}, resend {}".format(identifier, body))
         else:
             try:
                 body = incoming_content.get(timeout=1)
-                print("Homeside : Handle new down {}".format(identifier))
             except queue.Empty:
                 body = b""
             incoming_done[identifier] = body
@@ -88,7 +86,6 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
             body = cipherer.decrypt(body)
             outgoing_content.put(body)
             outgoing_done[identifier] = body
-            print("Homeside : Handle new up  {}".format(identifier))
         else:
             body = outgoing_done[identifier]
         self.send_response(201)

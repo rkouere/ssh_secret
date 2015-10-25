@@ -11,7 +11,7 @@ class Filter():
         raise Exception("Should be implemented")
 
     def __str__(self):
-        return self.__name__
+        return type(self).__name__
 
 
 def blacklist(path):

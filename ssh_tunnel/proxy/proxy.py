@@ -25,19 +25,20 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     @property
     def url(self):
-        if self.https:
-            return "https://"+self.path
-        elif self.path.startswith("http://"):
-            return self.path
-        else:
-            return "http://"+self.path
+        return self.path
 
     def handle_one_request(self):
         """Handle a single HTTP request.
         Override the standard request handler to print debug if needed
         """
         try:
-            self.raw_requestline = self.rfile.readline(65537)
+            try:
+                self.raw_requestline = self.rfile.readline(65537)
+            except ConnectionError:
+                logging.error("Failed to read request line : {}".format(self.request))
+                self.close_connection = True
+                return
+            logging.info(self.raw_requestline)
             if len(self.raw_requestline) > 65536:
                 self.requestline = ''
                 self.request_version = ''
@@ -67,6 +68,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.log_error("Request timed out: %r", e)
             self.close_connection = True
             return
+        except ConnectionError:
+            logging.error("Connection reset by peer : {}".format(self))
 
     def do_CONNECT(self):
         try:
@@ -83,19 +86,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            request = requests.get(self.url)
+            request = requests.get(self.url, headers=self.headers)
             logging.debug("< {}".format(request.headers))
             logging.debug("< {}".format(request.content))
             if self.filter_request(request.content):
                 return
-            f = io.BytesIO()
-            f.write(request.content)
-            f.seek(0)
-            self.send_response(request.status_code)
-            for h in request.headers:
-                self.send_header(h, request.headers[h])
-            self.end_headers()
-            shutil.copyfileobj(f, self.wfile)
+            self.proxy_request(request)
         except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             logging.info("{} not reachable".format(self.url))
             self.err400()
@@ -109,19 +105,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
             # Do not use the ReplayerFilter on this round as it mess too much
             return
         try:
-            request = requests.post(self.url, data=body)
+            request = requests.post(self.url, data=body, headers=self.headers)
             logging.debug("< {}".format(request.headers))
             logging.debug("< {}".format(request.content))
             if self.filter_request(request.content, path=self.url, headers=request.headers):
                 return
-            f = io.BytesIO()
-            f.write(request.content)
-            f.seek(0)
-            self.send_response(request.status_code)
-            for h in request.headers:
-                self.send_header(h, request.headers[h])
-            self.end_headers()
-            shutil.copyfileobj(f, self.wfile)
+            self.proxy_request(request)
         except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_message("{} not reachable".format(self.url))
             self.err400()
@@ -133,11 +122,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if not headers:
             headers = self.headers
         if not path:
-            path = self.path
+            path = self.url
         for f in self.filters:
-            if f.__class__ not in excludes and f.drop(self.path, self.headers, body):
+            if f.__class__ not in excludes and f.drop(self.url, self.headers, body):
                 self.err400()
-                self.log_message("Suspicious behaviour detected at {} by filter {}".format(self.path, f))
+                self.log_message("Suspicious behaviour detected at {} by filter {}".format(self.url, f))
 
     def err400(self):
         """Ends the current request with a 400 error code"""
@@ -146,6 +135,28 @@ class ProxyHandler(BaseHTTPRequestHandler):
         f.seek(0)
         self.send_response(418)
         self.end_headers()
+
+    def proxy_request(self, request):
+        """
+        Actually send the asked request to the client
+        """
+        if request.content:
+            f = io.BytesIO()
+            f.write(request.content)
+            f.seek(0)
+        self.send_response(request.status_code)
+        for h in request.headers:
+            if h == "Content-Length":
+                # Rewrite Content-Length header in case requests alreay unzipped the body
+                self.send_header(h, len(request.content))
+            elif h != "Content-Encoding":
+                # Override Content-Encoding if gzipped
+                pass
+            else:
+                self.send_header(h, request.headers[h])
+        self.end_headers()
+        if request.content:
+            shutil.copyfileobj(f, self.wfile)
 
 
 class ThreadedProxyServer(ThreadingMixIn, HTTPServer):

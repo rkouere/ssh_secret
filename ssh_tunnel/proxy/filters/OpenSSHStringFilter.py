@@ -24,7 +24,6 @@ class OpenSSHStringFilter(Filter):
             logging.debug("not a base64")
 
         for target in bodies:
-            print("length targer = " + str(len(target)))
             if prog.match(target.decode()):
                 logging.info("Openssh detected")
                 blacklist(path)

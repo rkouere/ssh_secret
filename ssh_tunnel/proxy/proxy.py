@@ -12,6 +12,7 @@ from ssh_tunnel.proxy.filters.OpenSSHStringFilter import OpenSSHStringFilter  # 
 from ssh_tunnel.proxy.filters.BlacklistFilter import BlacklistFilter  # nopep8
 from ssh_tunnel.proxy.filters.RandomDetectorFilter import RandomDetectorFilter  # nopep8
 from ssh_tunnel.proxy.filters.UserAgentFilter import UserAgentFilter  # nopep8
+from ssh_tunnel.proxy.ssl_thread import SSLThread
 
 
 class ProxyHandler(BaseHTTPRequestHandler):
@@ -70,17 +71,21 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logging.error("Connection reset by peer : {}".format(self))
 
     def do_CONNECT(self):
-        try:
-            request = requests.request("connect", self.url)
-        except ConnectionRefusedError:
-            logging.info("{} not reachable".format(self.url))
-            self.err400()
-        f = io.BytesIO()
-        f.write(request.content)
-        f.seek(0)
-        self.send_response(request.status_code)
+        # Client ask for an end-to-end tcp connection. Handle it in a new thread
+        host, port = self.path[:self.path.find(":")], self.path[self.path.find(":")+1:]
+        ssl_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ssl_socket.connect((host, int(port)))
+        ssl_in_thread = SSLThread(ssl_socket, self.request)
+        ssl_out_thread = SSLThread(self.request, ssl_socket)
+        ssl_in_thread.start()
+        ssl_out_thread.start()
+
+        self.send_response(200)
         self.end_headers()
-        shutil.copyfileobj(f, self.wfile)
+
+        ssl_in_thread.run()
+        ssl_out_thread.run()
+        return
 
     def do_GET(self):
         try:

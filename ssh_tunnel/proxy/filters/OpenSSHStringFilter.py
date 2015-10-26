@@ -4,6 +4,9 @@ from ssh_tunnel.proxy.filters import blacklist, Filter
 import re
 
 
+prog = re.compile(b'^SSH-[0-9]+(\.)?[0-9]?-(.*?) ')
+
+
 class OpenSSHStringFilter(Filter):
     """
     Finds the OpenSSH version exchange at the begining of the protocol
@@ -14,7 +17,6 @@ class OpenSSHStringFilter(Filter):
     Let's regex this...
     """
     def drop(self, path, headers, body):
-        prog = re.compile('^SSH-[0-9]+(\.)?[0-9]?-(.*?) ')
         bodies = []
         # Construct a list of decoded bodies
         bodies.append(body)
@@ -24,7 +26,7 @@ class OpenSSHStringFilter(Filter):
             logging.debug("not a base64")
 
         for target in bodies:
-            if prog.match(target.decode()):
+            if prog.match(target):
                 logging.info("Openssh detected")
                 blacklist(path)
                 return True

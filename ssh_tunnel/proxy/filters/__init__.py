@@ -1,6 +1,7 @@
 import logging
 import importlib
 import time
+import re
 
 blacklisted_uris = set()
 
@@ -35,9 +36,14 @@ def list_filters():
     return [f.__name__ for f in Filter.__subclasses__()]
 
 access_log = {}
+domain_url = re.compile("http:\/\/(.*?)\/")
 def addToLog(path):
-    if path in access_log:
-        access_log[path].append(time.time())
+    """
+    We are only going to look at the domain url
+    """
+    domain = domain_url.match(path).group()
+    logging.info("list of sites accessed = \n{}".format(access_log))
+    if domain in access_log:
+        access_log[domain].append(time.time())
     else:
-        access_log[path] = [time.time()]
-
+        access_log[domain] = [time.time()]

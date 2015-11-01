@@ -1,8 +1,8 @@
 import logging
 import importlib
+import time
 
 blacklisted_uris = set()
-
 
 class Filter():
     """Abstract class which defines a Filter plugin. It must implement the ``drop`` method"""
@@ -33,3 +33,11 @@ def load_filters_from_string(string):
 
 def list_filters():
     return [f.__name__ for f in Filter.__subclasses__()]
+
+access_log = {}
+def addToLog(path):
+    if path in access_log:
+        access_log[path].append(time.time())
+    else:
+        access_log[path] = [time.time()]
+

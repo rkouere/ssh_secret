@@ -1,9 +1,9 @@
-import binascii
-import logging
 from ssh_tunnel.proxy.filters import addToLog, Filter, access_log
 from threading import Thread
 from time import sleep
 from copy import deepcopy
+from math import sqrt
+
 
 class CheckRecurenceRequestFilter(Filter):
     """
@@ -13,43 +13,66 @@ class CheckRecurenceRequestFilter(Filter):
     """
     def __init__(self):
         LogsChecker(5).start()
+
     def drop(self, path, headers, body):
         addToLog(path)
         return False
 
+
 class LogsChecker(Thread):
     """
     Takes a time interval in seconds
-    Every n seconds copy the current log of connections and checks the standard deviation of each connection.
-    If it is below a certain number and that the average is also below a certain number, adds the domain to the blacklist
+    Every n seconds copy the current log of connections and checks the
+    standard deviation of each connection.
+    If it is below a certain number and that the average is also below
+    a certain number, adds the domain to the blacklist
     """
     def __init__(self, time_interval):
         ''' Constructor. '''
- 
         Thread.__init__(self)
         self.time_interval = time_interval
-        
- 
+        self.minimum_number_of_request = 100
+
     def run(self):
         """
-        
         """
         while True:
-           access_log_cp = deepcopy(access_log)
-           print("access_log = \n{}".format(access_log_cp))
-           sleep(self.time_interval)
-        
+            access_log_cp = deepcopy(access_log)
+            for domain in access_log_cp:
+                print("============== \nvalues for domain {}".format(domain))
+                self.standard_deviation(access_log_cp[domain])
+            sleep(self.time_interval)
+
     def standard_deviation(self, array):
         """
-        Pour calculer concrètement l'écart type à la main, le mieux est de prendre un exemple.
-        Considérons la série {5; 7; 9; 10}
-        On calcule d'abord la moyenne : m = (5 + 7 + 9 + 10)/4 = 31/4 = 7,75
-        On calcule ensuite la moyenne des carrés M = (25 + 49 + 81 + 100)/4 = 255/4 = 63,75
-        On calcule ensuite la variance V = M - m² = 63,75 - 7,75² = 3,6875
-        Enfin l'écart type est la racine carrée de V, soit environ 1,92
+        Calculates, for each timestamp, the average and the standard deviation
+        If the standard deviation is under x, it means that we have to deal
+        with a robot
+        and we blacklist it
+        We need a minimum of request to test it as a single access to a site
+        will give us a standard deviation of near 0
+
+
+        Method to calculate the standard deviation
+        To calculate the Variance, take each difference, square it, and
+        then average the result:
+        And the Standard Deviation is just the square root of Variance
         """
-        moyenne = 0
-        moyenne_des_carre = 0
-        for i in array:
-            moyenne += i
-            moyenne_des_carre += i*i
+        array_len = len(array)
+        if array_len > self.minimum_number_of_request:
+            average = 0
+            square_values = 0
+            # get the average
+            for i in array:
+                average += i
+
+            average = average/array_len
+
+            for i in array:
+                tmp = i - average
+                square_values += pow(tmp, 2)
+
+            variance = square_values/array_len
+            standard_deviation = sqrt(variance)
+            print("average = {}".format(average))
+            print("standard deviation = {}".format(standard_deviation))

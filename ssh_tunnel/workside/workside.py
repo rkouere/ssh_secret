@@ -13,6 +13,8 @@ except ImportError:
 
 from ssh_tunnel.commons import Cipherer
 from ssh_tunnel.workside import USER_AGENT
+from ssh_tunnel.workside.humanizer import HumanizerThread
+
 
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -78,10 +80,13 @@ def run(passphrase, baseurl="http://localhost:8000", ssh_port=22, bind="", inter
     cipherer = Cipherer(passphrase)
     read_thread = SSHReadThread(ssh_socket, baseurl, interval, cipherer)
     write_thread = SSHWriteThread(ssh_socket, baseurl, interval, cipherer)
+    humanizer_thread = HumanizerThread(baseurl)
 
+    humanizer_thread.start()
     read_thread.start()
     write_thread.start()
 
+    humanizer_thread.run()
     read_thread.run()
     write_thread.run()
 

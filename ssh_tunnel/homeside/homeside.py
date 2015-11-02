@@ -9,6 +9,8 @@ import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 from ssh_tunnel.commons import Cipherer
+from ssh_tunnel.homeside.tools import read_random_line
+
 
 _ssh_server = None
 incoming_content = queue.Queue()
@@ -24,6 +26,9 @@ def parse_id(path):
 
 
 class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_random_text()
+
     def do_POST(self):
         if self.path == "/":
             self.handle_root()
@@ -32,8 +37,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path.startswith("/up"):
             self.handle_up()
         else:
-            self.send_response(400)
-            self.end_headers()
+            self.send_random_text()
 
     def handle_root(self):
         body = b"SSH to HTTP tunnel is up and running"
@@ -95,6 +99,24 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         # Mute the default message logger
         return
+
+    def send_random_text(self):
+        """Fake the ennemy with a normal-looking html page"""
+        body = b'<html><body>'
+        for i in range(0, 200):
+            body += read_random_line("./lib/wordlist.txt")
+            body += b' '
+        body += b'</body></html>'
+        f = io.BytesIO()
+        f.write(body)
+        f.seek(0)
+        self.send_response(200)
+        self.send_header("Content-type", "raw")
+        self.send_header("Content-Length", len(body))
+        self.end_headers()
+        # This needs to be done after sending the headers
+        shutil.copyfileobj(f, self.wfile)
+        f.close()
 
 
 class SSHReadThread(Thread):

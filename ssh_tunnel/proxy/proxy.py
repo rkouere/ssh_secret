@@ -95,7 +95,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if self.filter_request(request.content):
                 return
             self.proxy_request(request)
-        except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+        except (ConnectionRefusedError, requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             logging.info("{} not reachable".format(self.url))
             self.err400()
 
@@ -114,7 +114,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if self.filter_request(request.content, path=self.url, headers=request.headers):
                 return
             self.proxy_request(request)
-        except (ConnectionRefusedError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+        except (ConnectionRefusedError, requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             self.log_message("{} not reachable".format(self.url))
             self.err400()
 

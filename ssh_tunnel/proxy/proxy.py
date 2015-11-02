@@ -14,6 +14,7 @@ from ssh_tunnel.proxy.filters.OpenSSHStringFilter import OpenSSHStringFilter  # 
 from ssh_tunnel.proxy.filters.BlacklistFilter import BlacklistFilter  # nopep8
 from ssh_tunnel.proxy.filters.RandomDetectorFilter import RandomDetectorFilter  # nopep8
 from ssh_tunnel.proxy.filters.UserAgentFilter import UserAgentFilter  # nopep8
+from ssh_tunnel.proxy.filters.EntropyFilter import EntropyFilter  # nopep8
 from ssh_tunnel.proxy.ssl_thread import SSLThread
 
 

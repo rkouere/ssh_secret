@@ -135,7 +135,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         for f in self.filters:
             if f.__class__ not in excludes and f.drop(self.url, self.headers, body):
                 self.err400()
-                logging.info("Suspicious behaviour detected at {} by filter {}".format(self.url, f))
+                logging.info("\033[1;31mSuspicious behaviour detected at {} by filter {}\033[1;0m".format(self.url, f))
 
     def err400(self):
         """Ends the current request with a 400 error code"""

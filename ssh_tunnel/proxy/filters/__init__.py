@@ -35,15 +35,3 @@ def load_filters_from_string(string):
 def list_filters():
     return [f.__name__ for f in Filter.__subclasses__()]
 
-access_log = {}
-domain_url = re.compile("http:\/\/(.*?)\/")
-def addToLog(path):
-    """
-    We are only going to look at the domain url
-    """
-    domain = domain_url.match(path).group()
-    logging.info("list of sites accessed = \n{}".format(access_log))
-    if domain in access_log:
-        access_log[domain].append(time.time())
-    else:
-        access_log[domain] = [time.time()]

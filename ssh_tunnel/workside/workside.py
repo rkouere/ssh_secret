@@ -12,9 +12,9 @@ except ImportError:
     sys.exit(1)
 
 from ssh_tunnel.commons import Cipherer
+from ssh_tunnel.workside import USER_AGENT
 
 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.34 (KHTML, like Gecko) konqueror/4.14.11 Safari/534.34"
 
 
 def try_post(url, interval, *args, **kwargs):

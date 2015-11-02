@@ -3,7 +3,7 @@ from threading import Thread
 from time import sleep
 from copy import deepcopy
 from math import sqrt
-
+import logging
 
 class CheckRecurenceRequestFilter(Filter):
     """
@@ -31,7 +31,9 @@ class LogsChecker(Thread):
         ''' Constructor. '''
         Thread.__init__(self)
         self.time_interval = time_interval
-        self.minimum_number_of_request = 100
+        self.minimum_number_of_request = 0
+        logging.debug("Thread started started")
+        
 
     def run(self):
         """
@@ -39,7 +41,7 @@ class LogsChecker(Thread):
         while True:
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                print("============== \nvalues for domain {}".format(domain))
+                logging.debug("============== \nvalues for domain {}".format(domain))
                 self.standard_deviation(access_log_cp[domain])
             sleep(self.time_interval)
 
@@ -74,5 +76,5 @@ class LogsChecker(Thread):
 
             variance = square_values/array_len
             standard_deviation = sqrt(variance)
-            print("average = {}".format(average))
-            print("standard deviation = {}".format(standard_deviation))
+            logging.debug("average = {}".format(average))
+            logging.debug("standard deviation = {}".format(standard_deviation))

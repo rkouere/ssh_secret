@@ -4,7 +4,7 @@ from ssh_tunnel.proxy.filters import blacklist, Filter
 import re
 
 
-prog = re.compile(b'^SSH-[0-9]+(\.)?[0-9]?-(.*?) ')
+prog = re.compile(b'^SSH-[0-9]+(\.)?[0-9]?-(.*)')
 
 
 class OpenSSHStringFilter(Filter):
@@ -28,6 +28,5 @@ class OpenSSHStringFilter(Filter):
         for target in bodies:
             if prog.match(target):
                 logging.info("Openssh detected")
-                blacklist(path)
                 return True
         return False

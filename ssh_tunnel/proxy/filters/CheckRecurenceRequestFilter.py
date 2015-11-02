@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 black_domains = []
 access_log = {}
+lock = Lock()
 
 
 class CheckRecurenceRequestFilter(Filter):
@@ -18,8 +19,8 @@ class CheckRecurenceRequestFilter(Filter):
 
     """
     def __init__(self):
-        self.lock = Lock()
-        LogsChecker(5, self.lock).start()
+        LogsChecker(5).start()
+        # LogsCleaning().start()
 
     def drop(self, path, headers, body):
         """
@@ -38,25 +39,45 @@ class CheckRecurenceRequestFilter(Filter):
         We are only going to look at the domain url
         """
         logging.info("list of sites accessed = \n{}".format(access_log))
-        self.lock.acquire()
+        lock.acquire()
         if domain in access_log:
             access_log[domain].append(time.time())
         else:
             access_log[domain] = [time.time()]
-        self.lock.release()
+        lock.release()
 
 
 class LogsCleaning(Thread):
     """
     Will look at all the logs and remove the domains which have not been
-    accessed for more than x minutes
+    accessed for more than x minutes.
     """
-    def _init_(self):
+    def __init__(self):
         Thread.__init__(self)
-        self.occurence = 10*60
+        self.latest_access = 5
+        self.time_interval = 5
+        logging.debug("Thread LogsCleaning started")
 
-    def clean(self):
-        print("toto")
+    def run(self):
+        """
+        Checks that the latest access to the domain is under xxx
+        If not, removes it from the list of logs
+        """
+        while 1:
+            now = time.time()
+            lock.acquire()
+            for domain in access_log:
+                latest_tmp = 0  # stock the latest access to the domain
+                for access in access_log[domain]:
+                    if access > latest_tmp:
+                        latest_tmp = access
+                    if latest_tmp < now - self.latest_access:
+                        logging.info(
+                            "domain {} has not been accessed for a long " +
+                            "time. Removed from the logs".format(domain))
+                        del access_log[domain]
+            lock.release()
+            sleep(self.time_interval)
 
 
 class LogsChecker(Thread):
@@ -67,13 +88,12 @@ class LogsChecker(Thread):
     If it is below a certain number and that the average is also below
     a certain number, adds the domain to the blacklist
     """
-    def __init__(self, time_interval, lock):
+    def __init__(self, time_interval):
         ''' Constructor. '''
         Thread.__init__(self)
         self.time_interval = time_interval
         self.minimum_number_of_request = 50
         self.deviation_minimum = 10
-        self.lock = lock
         logging.debug("Thread started started")
 
     def run(self):

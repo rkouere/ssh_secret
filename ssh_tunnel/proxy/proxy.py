@@ -175,7 +175,7 @@ if __name__ == '__main__':
                         help='Specify alternate port [default: 8008]')
     parser.add_argument('--verbose', '-v', action="store_true",
                         help='Toogle verbose mode')
-    parser.add_argument('filters', default="all", type=str,
+    parser.add_argument('filters', nargs="?", default="all", type=str,
                         help='A list of filters. Available are {}. [default: all]'.format(list_filters() +
                                                                                           ['all',
                                                                                            'none']))

@@ -42,7 +42,11 @@ class SSHReadThread(Thread):
             r = try_post(self.baseurl+"/down/{}".format(request_id), self.interval)
             if r.status_code == 201 and len(r.content):
                 content = self.cipherer.decrypt(r.content)
-                self.socket.send(content)
+                try:
+                    self.socket.send(content)
+                except OSError:
+                    print("Broken pipe trying to send data to ssh_server. Exiting")
+                    return
 
 
 class SSHWriteThread(Thread):

@@ -89,7 +89,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            request = requests.get(self.url, headers=self.headers)
+            request = requests.get(self.url, headers=self.headers, allow_redirects=False)
             logging.debug("< {}".format(request.headers))
             logging.debug("< {}".format(request.content))
             if self.filter_request(request.content):
@@ -108,7 +108,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             # Do not use the ReplayerFilter on this round as it mess too much
             return
         try:
-            request = requests.post(self.url, data=body, headers=self.headers)
+            request = requests.post(self.url, data=body, headers=self.headers, allow_redirects=False)
             logging.debug("< {}".format(request.headers))
             logging.debug("< {}".format(request.content))
             if self.filter_request(request.content, path=self.url, headers=request.headers):

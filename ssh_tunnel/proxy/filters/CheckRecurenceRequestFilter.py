@@ -1,5 +1,5 @@
 from ssh_tunnel.proxy.filters import Filter
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
 from copy import deepcopy
 from math import sqrt
@@ -18,7 +18,8 @@ class CheckRecurenceRequestFilter(Filter):
 
     """
     def __init__(self):
-        LogsChecker(5).start()
+        self.lock = Lock()
+        LogsChecker(5, self.lock).start()
 
     def drop(self, path, headers, body):
         """
@@ -37,10 +38,25 @@ class CheckRecurenceRequestFilter(Filter):
         We are only going to look at the domain url
         """
         logging.info("list of sites accessed = \n{}".format(access_log))
+        self.lock.acquire()
         if domain in access_log:
             access_log[domain].append(time.time())
         else:
             access_log[domain] = [time.time()]
+        self.lock.release()
+
+
+class LogsCleaning(Thread):
+    """
+    Will look at all the logs and remove the domains which have not been
+    accessed for more than x minutes
+    """
+    def _init_(self):
+        Thread.__init__(self)
+        self.occurence = 10*60
+
+    def clean(self):
+        print("toto")
 
 
 class LogsChecker(Thread):
@@ -51,12 +67,13 @@ class LogsChecker(Thread):
     If it is below a certain number and that the average is also below
     a certain number, adds the domain to the blacklist
     """
-    def __init__(self, time_interval):
+    def __init__(self, time_interval, lock):
         ''' Constructor. '''
         Thread.__init__(self)
         self.time_interval = time_interval
         self.minimum_number_of_request = 50
         self.deviation_minimum = 10
+        self.lock = lock
         logging.debug("Thread started started")
 
     def run(self):

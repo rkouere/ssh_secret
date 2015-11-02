@@ -30,7 +30,7 @@ class CheckRecurenceRequestFilter(Filter):
         domain = domain_url.match(path).group()
         if domain not in black_domains:
             self.addToLog(domain)
-            return False 
+            return False
         return True
 
     def addToLog(self, domain):
@@ -59,7 +59,6 @@ class LogsChecker(Thread):
         self.minimum_number_of_request = 50
         self.deviation_minimum = 10
         logging.debug("Thread started started")
-        
 
     def run(self):
         """
@@ -67,7 +66,8 @@ class LogsChecker(Thread):
         while True:
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                logging.debug("============== \nvalues for domain {}".format(domain))
+                logging.debug(
+                    "============== \nvalues for domain {}".format(domain))
                 self.standard_deviation(access_log_cp[domain], domain)
             sleep(self.time_interval)
 
@@ -105,5 +105,4 @@ class LogsChecker(Thread):
             logging.debug("average = {}".format(average))
             logging.debug("standard deviation = {}".format(standard_deviation))
             if standard_deviation < self.deviation_minimum:
-               black_domains.append(domain)
-
+                black_domains.append(domain)

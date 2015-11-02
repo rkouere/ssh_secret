@@ -27,7 +27,6 @@ class CheckRecurenceRequestFilter(Filter):
         """
         parsed_uri = urlparse(path)
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-        print("domain = {}".format(domain))
         if domain not in black_domains:
             self.addToLog(domain)
             return False
@@ -62,6 +61,8 @@ class LogsChecker(Thread):
 
     def run(self):
         """
+        Every x seconds, makes a copy of all the requests we had
+        and calculate the standard deviation for each one
         """
         while True:
             access_log_cp = deepcopy(access_log)
@@ -75,16 +76,9 @@ class LogsChecker(Thread):
         """
         Calculates, for each timestamp, the average and the standard deviation
         If the standard deviation is under x, it means that we have to deal
-        with a robot
-        and we blacklist it
+        with a robot and we add it to the blacklist
         We need a minimum of request to test it as a single access to a site
         will give us a standard deviation of near 0
-
-
-        Method to calculate the standard deviation
-        To calculate the Variance, take each difference, square it, and
-        then average the result:
-        And the Standard Deviation is just the square root of Variance
         """
         array_len = len(array)
         if array_len > self.minimum_number_of_request:

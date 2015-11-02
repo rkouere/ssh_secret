@@ -1,9 +1,17 @@
-from ssh_tunnel.proxy.filters import addToLog, Filter, access_log
+from ssh_tunnel.proxy.filters import Filter
 from threading import Thread
 from time import sleep
 from copy import deepcopy
 from math import sqrt
 import logging
+import re
+import time
+
+
+domain_url = re.compile("http:\/\/(.*?)\/")
+black_domains = []
+access_log = {}
+
 
 class CheckRecurenceRequestFilter(Filter):
     """
@@ -15,8 +23,25 @@ class CheckRecurenceRequestFilter(Filter):
         LogsChecker(5).start()
 
     def drop(self, path, headers, body):
-        addToLog(path)
-        return False
+        """
+        Checks that the path is not blacklisted
+        If not, adds it to the logs
+        """
+        domain = domain_url.match(path).group()
+        if domain not in black_domains:
+            self.addToLog(domain)
+            return False 
+        return True
+
+    def addToLog(self, domain):
+        """
+        We are only going to look at the domain url
+        """
+        logging.info("list of sites accessed = \n{}".format(access_log))
+        if domain in access_log:
+            access_log[domain].append(time.time())
+        else:
+            access_log[domain] = [time.time()]
 
 
 class LogsChecker(Thread):
@@ -31,7 +56,8 @@ class LogsChecker(Thread):
         ''' Constructor. '''
         Thread.__init__(self)
         self.time_interval = time_interval
-        self.minimum_number_of_request = 0
+        self.minimum_number_of_request = 50
+        self.deviation_minimum = 10
         logging.debug("Thread started started")
         
 
@@ -42,10 +68,10 @@ class LogsChecker(Thread):
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
                 logging.debug("============== \nvalues for domain {}".format(domain))
-                self.standard_deviation(access_log_cp[domain])
+                self.standard_deviation(access_log_cp[domain], domain)
             sleep(self.time_interval)
 
-    def standard_deviation(self, array):
+    def standard_deviation(self, array, domain):
         """
         Calculates, for each timestamp, the average and the standard deviation
         If the standard deviation is under x, it means that we have to deal
@@ -78,3 +104,6 @@ class LogsChecker(Thread):
             standard_deviation = sqrt(variance)
             logging.debug("average = {}".format(average))
             logging.debug("standard deviation = {}".format(standard_deviation))
+            if standard_deviation < self.deviation_minimum:
+               black_domains.append(domain)
+

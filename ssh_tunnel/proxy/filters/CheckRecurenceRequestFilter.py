@@ -4,11 +4,9 @@ from time import sleep
 from copy import deepcopy
 from math import sqrt
 import logging
-import re
 import time
+from urllib.parse import urlparse
 
-
-domain_url = re.compile("http:\/\/(.*?)\/")
 black_domains = []
 access_log = {}
 
@@ -27,7 +25,9 @@ class CheckRecurenceRequestFilter(Filter):
         Checks that the path is not blacklisted
         If not, adds it to the logs
         """
-        domain = domain_url.match(path).group()
+        parsed_uri = urlparse(path)
+        domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+        print("domain = {}".format(domain))
         if domain not in black_domains:
             self.addToLog(domain)
             return False

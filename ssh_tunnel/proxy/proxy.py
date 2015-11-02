@@ -4,6 +4,8 @@ import shutil
 import io
 import logging
 import socket
+from time import clock
+
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from ssh_tunnel.proxy.filters import list_filters, load_filters_from_string
@@ -18,6 +20,10 @@ from ssh_tunnel.proxy.ssl_thread import SSLThread
 class ProxyHandler(BaseHTTPRequestHandler):
 
     filters = []
+
+    def __init__(self, *args, **kwargs):
+        self.start = clock()
+        BaseHTTPRequestHandler.__init__(self, *args, *kwargs)
 
     @property
     def https(self):
@@ -161,6 +167,16 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         if request.content:
             shutil.copyfileobj(f, self.wfile)
+
+    def log_request(self, code='-', size='-'):
+        """Log an accepted request.
+
+        This is called by send_response().
+
+        """
+
+        self.log_message('"%s" %s %s %s',
+                         self.requestline, str(code), str(size), str(clock()-self.start))
 
 
 class ThreadedProxyServer(ThreadingMixIn, HTTPServer):

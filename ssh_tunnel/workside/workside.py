@@ -21,8 +21,12 @@ ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 def try_post(url, interval, *args, **kwargs):
     while True:
+        # Randomize a bit
+        time.sleep((random.randint(0, 1000)//1000))
         try:
             r = requests.post(url, headers={'User-Agent': USER_AGENT}, *args, **kwargs)
+            print(r.headers)
+            print(r.content)
             return r
         except requests.exceptions.ConnectionError:
             print("Connection to {} failed, retry in {} sec".format(url, interval))
@@ -41,8 +45,8 @@ class SSHReadThread(Thread):
     def run(self):
         while True:
             request_id = random.getrandbits(128)
-            r = try_post(self.baseurl+"/down/{}".format(request_id), self.interval)
-            if r.status_code == 201 and len(r.content):
+            r = try_post(self.baseurl+"/down/{}".format(request_id), self.interval, data=str(random.getrandbits(128)))
+            if r.status_code == 201:
                 content = self.cipherer.decrypt(r.content)
                 try:
                     self.socket.send(content)

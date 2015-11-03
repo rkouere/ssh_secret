@@ -38,7 +38,7 @@ class CheckRecurenceRequestFilter(Filter):
         """
         We are only going to look at the domain url
         """
-        logging.info("list of sites accessed = \n{}".format(access_log))
+        logging.debug("list of sites accessed = {}".format(access_log))
         lock.acquire()
         if domain in access_log:
             access_log[domain].append(time.time())
@@ -104,7 +104,7 @@ class LogsChecker(Thread):
         and calculate the standard deviation for each one
         """
         while True:
-            logging.info("list of sites accessed = \n{}".format(access_log))
+            logging.debug("list of sites accessed = {}".format(access_log))
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
                 logging.debug(

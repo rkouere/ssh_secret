@@ -111,7 +111,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len)
         logging.debug(">")
-        logging.debug("> {}".format(body))
         if self.filter_request(body, excludes=[ReplayerFilter]):
             # Do not use the ReplayerFilter on this round as it mess too much
             return

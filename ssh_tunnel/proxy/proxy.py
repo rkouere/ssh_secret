@@ -8,7 +8,7 @@ from time import clock
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from ssh_tunnel.proxy.filters import list_filters, load_filters_from_string
+from ssh_tunnel.proxy.filters import list_filters, load_filters_from_list
 from ssh_tunnel.proxy.filters.ReplayerFilter import ReplayerFilter
 from ssh_tunnel.proxy.filters.OpenSSHStringFilter import OpenSSHStringFilter  # nopep8
 from ssh_tunnel.proxy.filters.BlacklistFilter import BlacklistFilter  # nopep8
@@ -199,7 +199,7 @@ if __name__ == '__main__':
                         help='Specify alternate port [default: 8008]')
     parser.add_argument('--verbose', '-v', action="store_true",
                         help='Toogle verbose mode')
-    parser.add_argument('filters', nargs="?", default="all", type=str,
+    parser.add_argument('filters', nargs="+", default="all", type=str,
                         help='A list of filters. Available are {}. [default: all]'.format(list_filters() +
                                                                                           ['all',
                                                                                            'none']))
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
     logging.info("Server starting")
     logging.debug("Verbose on")
-    filters = load_filters_from_string(args.filters)
+    filters = load_filters_from_list(args.filters)
     for _filter in filters:
         f = _filter()
         logging.info("Installing filter {}".format(str(f)))

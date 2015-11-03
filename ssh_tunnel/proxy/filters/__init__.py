@@ -23,12 +23,12 @@ def blacklist(path):
     logging.info("Blacklist : {}".format(blacklisted_uris))
 
 
-def load_filters_from_string(string):
-    if string == "none":
+def load_filters_from_list(l):
+    if l == ["none"]:
         return []
-    if string == "all":
-        string = " ".join(list_filters())
-    return [getattr(importlib.import_module(__name__+"."+classname), classname) for classname in string.split(' ')]
+    if l == ["all"]:
+        l = " ".join(list_filters())
+    return [getattr(importlib.import_module(__name__+"."+classname), classname) for classname in l]
 
 
 def list_filters():

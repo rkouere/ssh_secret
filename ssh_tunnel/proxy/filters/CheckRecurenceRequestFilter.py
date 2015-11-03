@@ -68,6 +68,7 @@ class LogsCleaning(Thread):
             now = time.time()
             lock.acquire()
             access_log_copy = deepcopy(access_log)
+            lock.release()
             for domain in access_log_copy:
                 latest_tmp = 0  # stock the latest access to the domain
                 for access in access_log_copy[domain]:
@@ -79,7 +80,6 @@ class LogsCleaning(Thread):
                             "time. Removed from the logs".format(domain))
                         del access_log[domain]
             sleep(self.time_interval)
-            lock.release()
 
 
 class LogsChecker(Thread):

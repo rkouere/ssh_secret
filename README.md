@@ -6,6 +6,10 @@ communicate together using SSH.
 
 In other words, we build an SSH-over-HTTP tunnel.
 
+## Dependencies ##
+
+requests : to install on Ubuntu, we just need to install ``python3-pip``
+
 ## Definitions ##
 
 ### Server side, work side ###

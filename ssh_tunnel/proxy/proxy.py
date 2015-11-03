@@ -136,10 +136,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
         blockers = []
         for f in self.filters:
             if f.__class__ not in excludes:
-                logging.debug("Test filter {}".format(f))
-                dropped, reason = f.drop(self.url, self.headers, body)
-                if dropped:
-                    blockers.append((f, reason))
+                try:
+                    dropped, reason = f.drop(self.url, self.headers, body)
+                    if dropped:
+                        blockers.append((f, reason))
+                except TypeError:
+                    pass
         if blockers:
             for (f, reason) in blockers:
                 logging.info("\033[1;31m{} filtered by {} (Reason : {})\033[1;0m".format(self.url, f, reason))

@@ -72,7 +72,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         f.write(body)
         f.seek(0)
         self.send_response(201)
-        self.send_header("Content-type", "raw")
+        self.send_header("Content-type", "audio")
         self.send_header("Content-Length", len(body))
         self.end_headers()
         # This needs to be done after sending the headers
@@ -93,7 +93,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         else:
             body = outgoing_done[identifier]
         self.send_response(201)
-        self.send_header("Content-type", "raw")
+        self.send_header("Content-type", "audio")
         self.end_headers()
 
     def log_message(self, format, *args):

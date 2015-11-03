@@ -162,11 +162,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
             f.write(request.content)
             f.seek(0)
         self.send_response(request.status_code)
+        # Rewrite Content-Length header in case requests already unzipped the body
+        self.send_header("Content-Length", len(request.content))
         for h in request.headers:
             if h == "Content-Length":
-                # Rewrite Content-Length header in case requests alreay unzipped the body
-                self.send_header(h, len(request.content))
-            elif h in ["Content-Encoding", "Server", "Date"]:
+                pass
+            elif h in ["Content-Encoding", "Server", "Date", "Transfer-Encoding"]:
                 # Override Content-Encoding if gzipped
                 # Others because the proxy set it's own instead
                 pass

@@ -20,7 +20,7 @@ class CheckRecurenceRequestFilter(Filter):
     """
     def __init__(self):
         LogsChecker(5).start()
-        # LogsCleaning().start()
+        LogsCleaning().start()
 
     def drop(self, path, headers, body):
         """
@@ -54,8 +54,8 @@ class LogsCleaning(Thread):
     """
     def __init__(self):
         Thread.__init__(self)
-        self.latest_access = 5
-        self.time_interval = 5
+        self.latest_access = 10*1000  # minimum time of inactivity between now and the latest access
+        self.time_interval = 5*1000  # time interval between checksminutes
         logging.debug("Thread LogsCleaning started")
 
     def run(self):
@@ -63,12 +63,14 @@ class LogsCleaning(Thread):
         Checks that the latest access to the domain is under xxx
         If not, removes it from the list of logs
         """
+        global access_log
         while 1:
             now = time.time()
             lock.acquire()
-            for domain in access_log:
+            access_log_copy = deepcopy(access_log)
+            for domain in access_log_copy:
                 latest_tmp = 0  # stock the latest access to the domain
-                for access in access_log[domain]:
+                for access in access_log_copy[domain]:
                     if access > latest_tmp:
                         latest_tmp = access
                     if latest_tmp < now - self.latest_access:
@@ -76,8 +78,8 @@ class LogsCleaning(Thread):
                             "domain {} has not been accessed for a long " +
                             "time. Removed from the logs".format(domain))
                         del access_log[domain]
-            lock.release()
             sleep(self.time_interval)
+            lock.release()
 
 
 class LogsChecker(Thread):
@@ -102,6 +104,7 @@ class LogsChecker(Thread):
         and calculate the standard deviation for each one
         """
         while True:
+            logging.info("list of sites accessed = \n{}".format(access_log))
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
                 logging.debug(

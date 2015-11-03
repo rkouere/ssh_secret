@@ -55,7 +55,7 @@ class LogsCleaning(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.latest_access = 10*1000  # minimum time of inactivity between now and the latest access
-        self.time_interval = 5*1000  # time interval between checksminutes
+        self.time_interval = 5*60  # time interval between checksminutes
         logging.debug("Thread LogsCleaning started")
 
     def run(self):

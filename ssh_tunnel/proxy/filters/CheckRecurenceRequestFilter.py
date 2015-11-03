@@ -29,6 +29,7 @@ class CheckRecurenceRequestFilter(Filter):
         """
         parsed_uri = urlparse(path)
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+        logging.info(black_domains)
         if domain not in black_domains:
             self.addToLog(domain)
             return (False, "")
@@ -38,7 +39,6 @@ class CheckRecurenceRequestFilter(Filter):
         """
         We are only going to look at the domain url
         """
-        logging.debug("list of sites accessed = {}".format(access_log))
         lock.acquire()
         if domain in access_log:
             access_log[domain].append(time.time())
@@ -96,7 +96,6 @@ class LogsChecker(Thread):
         self.time_interval = time_interval
         self.minimum_number_of_request = 50
         self.deviation_minimum = 10
-        logging.debug("Thread started started")
 
     def run(self):
         """
@@ -104,11 +103,8 @@ class LogsChecker(Thread):
         and calculate the standard deviation for each one
         """
         while True:
-            logging.debug("list of sites accessed = {}".format(access_log))
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                logging.debug(
-                    "============== \nvalues for domain {}".format(domain))
                 self.standard_deviation(access_log_cp[domain], domain)
             sleep(self.time_interval)
 

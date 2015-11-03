@@ -7,7 +7,7 @@ import logging
 import time
 from urllib.parse import urlparse
 
-black_domains = []
+black_domains = {}
 access_log = {}
 lock = Lock()
 
@@ -31,8 +31,8 @@ class CheckRecurenceRequestFilter(Filter):
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
         if domain not in black_domains:
             self.addToLog(domain)
-            return False
-        return True
+            return (False, "")
+        return (True, "Standard deviation too low : {} < 10".format(black_domains[domain]))
 
     def addToLog(self, domain):
         """
@@ -139,4 +139,4 @@ class LogsChecker(Thread):
             logging.debug("average = {}".format(average))
             logging.debug("standard deviation = {}".format(standard_deviation))
             if standard_deviation < self.deviation_minimum:
-                black_domains.append(domain)
+                black_domains[domain] = standard_deviation

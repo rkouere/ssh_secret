@@ -31,4 +31,4 @@ class ReplayerFilter(Filter):
             # Delay the request in a new thread while we immediately return
             ReplayerDelayer(path, headers, body).start()
         # Always return False as the request should not been dropped
-        return False
+        return (False, None)

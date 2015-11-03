@@ -30,4 +30,6 @@ class RandomDetectorFilter(Filter):
             rate_by_host[host]['total'] += len(body)
             rate_by_host[host]['count'] += 1
             logging.info("Random rate : {} (host {})".format(random_for_host(host), host))
-            return rate_by_host[host]['count'] > 2 and random_for_host(host) < RANDOM_THRESHOLD
+            dropped = rate_by_host[host]['count'] > 2 and random_for_host(host) < RANDOM_THRESHOLD
+            return (dropped, "Random rate : {}".format(random_for_host(host)))
+        return (False, None)

@@ -7,7 +7,7 @@ blacklisted_uris = set()
 class Filter():
     """Abstract class which defines a Filter plugin. It must implement the ``drop`` method"""
     def drop(self, path, headers, body):
-        """Returns True if the request is suspitious and should be filtered"""
+        """Returns (True, "reason") if the request is suspitious and should be filtered, (False, None) otherwise"""
         raise Exception("Should be implemented")
 
     def __str__(self):

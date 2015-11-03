@@ -27,6 +27,5 @@ class OpenSSHStringFilter(Filter):
 
         for target in bodies:
             if prog.match(target):
-                logging.info("Openssh detected")
-                return True
-        return False
+                return (True, "Openssh identification string detected")
+        return (False, None)

@@ -26,4 +26,6 @@ class EntropyFilter(Filter):
             entropy_by_host[host]['count'] += 1
             entropy_by_host[host]['ratio'] += entropy_by_host[host]['entropy'] / entropy_by_host[host]['total']
             logging.info("Entropy : {} -- {} (host {})".format(entropy, entropy_by_host[host], host))
-            return entropy_by_host[host]['count'] > 2 and entropy_by_host[host]['entropy'] > ENTROPY_THRESHOLD
+            dropped = entropy_by_host[host]['count'] > 2 and entropy > ENTROPY_THRESHOLD
+            return (dropped, "Entropy is {} > {}".format(entropy, ENTROPY_THRESHOLD))
+        return (False, None)

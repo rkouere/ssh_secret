@@ -26,8 +26,8 @@ def blacklist(path):
 def load_filters_from_list(l):
     if l == ["none"]:
         return []
-    if l == ["all"]:
-        l = " ".join(list_filters())
+    if l == ["all"] or l == "all":
+        l = list_filters()
     return [getattr(importlib.import_module(__name__+"."+classname), classname) for classname in l]
 
 

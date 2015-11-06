@@ -25,7 +25,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
         self.start = clock()
-        BaseHTTPRequestHandler.__init__(self, *args, *kwargs)
+        BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     @property
     def https(self):

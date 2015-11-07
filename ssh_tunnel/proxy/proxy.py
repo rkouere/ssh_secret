@@ -190,7 +190,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         """
 
-        self.log_message('"%s" %s %s %s',
+        logging.info('"%s" %s %s %s',
                          self.requestline, str(code), str(size), str(clock()-self.start))
 
 

@@ -67,16 +67,21 @@ class console(Thread):
     def parse_arguments(self, arg):
         options = {
             "h": self.display_help,
-            "lw": self.display_white_list}
+            "lw": self.display_white_list,
+            "lb": self.display_black_list}
         options.get(arg, self.display_help)()
 
     def display_white_list(self):
         logging.critical("{}".format(white_domains))
 
+    def display_black_list(self):
+        logging.critical("{}".format(black_domains))
+
     def display_help(self):
         arguments = {
             "h": "print this help message",
-            "lw": "print the white listed domains"
+            "lw": "print the white listed domains",
+            "lb": "print the black listed domains"
         }
         logging.critical(
             bcolors.BOLD +

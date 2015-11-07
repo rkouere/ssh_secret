@@ -16,7 +16,7 @@ lock = Lock()
 # 0 low
 # 1 medium
 # 2 high
-warnings = {0: {}, 1: {}, 2: {}}
+warnings = {"low": {}, "medium": {}, "high": {}}
 
 
 class CheckRecurenceRequestFilter(Filter):
@@ -105,12 +105,14 @@ class Console(Thread):
             "h": self.c_display_help,
             "lw": self.c_display_white_list,
             "lb": self.c_display_black_list,
+            "lwa": self.c_display_all_warnings,
             }
         command_multiple_arguments = {
             "ab": self.c_add_to_black_list,
             "aw": self.c_add_to_while_list,
             "rb": self.c_remove_from_black_list,
             "rw": self.c_remove_from_white_list,
+            "lwa": self.c_display_warnings,
         }
         # check if the command also has arguments
         arguments = arg.split(" ")
@@ -130,6 +132,27 @@ class Console(Thread):
     def c_display_black_list(self):
         """lb: Prints the black listed domains """
         logging.critical("{}".format(black_domains))
+
+    def __log_warnings(self, w, warnings):
+        for l in warnings[w]:
+            logging.critical(
+                "{}".format(l) + " {}".format(warnings[w][l]))
+
+    def c_display_all_warnings(self):
+        """ lwa: Prints the warnings """
+        for w in warnings:
+            logging.critical("level {}".format(w))
+            self.__log_warnings(w, warnings)
+
+    def c_display_warnings(self, level):
+        lev = level[0]
+        if lev == "high":
+            print("ccccc")
+            self.__log_warnings(lev, warnings)
+        if lev == "medium":
+            self.__log_warnings(lev, warnings)
+        if lev == "low":
+            self.__log_warnings(lev, warnings)
 
     def c_add_to_while_list(self, domains):
         """aw [domains]: Adds domains to the white list"""
@@ -256,7 +279,7 @@ class LogsChecker(Thread):
         """
         if self.paranoia_level == "paranoiac":
             if dev and dev < self.deviation_alert_low and domain.startswith("http://www"):
-                warnings[0][domain] = dev
+                warnings["low"][domain] = dev
             elif dev and dev < self.deviation_alert_high:
                 black_domains[domain] = dev
 

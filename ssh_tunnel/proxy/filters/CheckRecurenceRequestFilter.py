@@ -76,6 +76,7 @@ class console(Thread):
             }
         command_multiple_arguments = {
             "ab": self.add_to_black_list,
+            "aw": self.add_to_while_list,
         }
         # check if the command also has arguments
         arguments = arg.split(" ")
@@ -96,11 +97,18 @@ class console(Thread):
         """ Prints the black listed domains """
         logging.critical("{}".format(black_domains))
 
+    def add_to_while_list(self, domains):
+        """Adds a domain to the white list"""
+        lock.acquire()
+        for i in domains:
+            white_domains[i] = "Manual"
+        lock.release()
+
     def add_to_black_list(self, domains):
         """Adds a domain to the black list"""
         lock.acquire()
         for i in domains:
-            black_domains[i] = "0"
+            black_domains[i] = "Manual"
         lock.release()
 
     def display_help(self, arg=None):
@@ -109,7 +117,8 @@ class console(Thread):
             "h": "print this help message",
             "lw": "print the white listed domains",
             "lb": "print the black listed domains",
-            "ab [domain]": "adds a domain to the black list"
+            "ab [domains]": "adds domains to the black list",
+            "aw [domains]": "adds a domains to the white list",
         }
         if arg:
             logging.critical(

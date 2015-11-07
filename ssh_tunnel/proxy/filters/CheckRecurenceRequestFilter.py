@@ -219,7 +219,9 @@ class LogsChecker(Thread):
         while True:
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                self.standard_deviation(access_log_cp[domain], domain)
+                dev = self.standard_deviation(access_log_cp[domain], domain)
+                if dev and dev < self.deviation_minimum:
+                    black_domains[domain] = dev
             sleep(self.time_interval)
 
     def standard_deviation(self, array, domain):
@@ -248,5 +250,6 @@ class LogsChecker(Thread):
             standard_deviation = sqrt(variance)
             logging.debug("average = {}".format(average))
             logging.debug("standard deviation = {}".format(standard_deviation))
-            if standard_deviation < self.deviation_minimum:
-                black_domains[domain] = standard_deviation
+            return standard_deviation
+        else:
+            return False

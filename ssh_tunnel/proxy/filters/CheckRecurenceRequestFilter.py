@@ -65,11 +65,29 @@ class console(Thread):
             self.parse_arguments(command)
 
     def parse_arguments(self, arg):
-        options = {
+        """
+        Parses the commands
+        """
+        # list of valid commands
+        command_one_arg = {
             "h": self.display_help,
             "lw": self.display_white_list,
-            "lb": self.display_black_list}
-        options.get(arg, self.display_help)()
+            "lb": self.display_black_list,
+            }
+        command_multiple_arguments = {
+            "ab": self.display_black_list,
+        }
+        # check if the command also has arguments
+        arguments = arg.split(" ")
+        if len(arguments) > 1:
+            print(arguments[1:])
+            method = command_multiple_arguments.get(
+                arguments[0], self.display_help)
+            method(arguments[1:])
+        else:
+            method = command_one_arg.get(
+                arguments[0], self.display_help)
+            method()
 
     def display_white_list(self):
         logging.critical("{}".format(white_domains))
@@ -77,12 +95,24 @@ class console(Thread):
     def display_black_list(self):
         logging.critical("{}".format(black_domains))
 
-    def display_help(self):
+    def add_to_black_list(self, domain):
+        """
+        """
+        lock.acquire()
+        black_domains[domain] = "0"
+
+    def display_help(self, arg=None):
         arguments = {
             "h": "print this help message",
             "lw": "print the white listed domains",
-            "lb": "print the black listed domains"
+            "lb": "print the black listed domains",
+            "ab [domain]": "adds a domain to the black list"
         }
+        if arg:
+            logging.critical(
+                bcolors.RED +
+                "this command does not take arguments" +
+                bcolors.ENDC)
         logging.critical(
             bcolors.BOLD +
             "The list of valid commands are :" + bcolors.ENDC)

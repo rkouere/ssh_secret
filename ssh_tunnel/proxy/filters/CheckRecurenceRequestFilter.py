@@ -18,6 +18,9 @@ lock = Lock()
 # 2 high
 warnings = {"low": {}, "medium": {}, "high": {}}
 
+allowed_paranoia = ["paranoiac", "medium", "candid"]
+current_paranoia = "paranoiac"
+
 
 class CheckRecurenceRequestFilter(Filter):
     """
@@ -113,6 +116,7 @@ class Console(Thread):
             "rb": self.c_remove_from_black_list,
             "rw": self.c_remove_from_white_list,
             "lwa": self.c_display_warnings,
+            "p": self.c_change_current_paranoia,
         }
         # check if the command also has arguments
         arguments = arg.split(" ")
@@ -124,6 +128,20 @@ class Console(Thread):
             method = command_one_arg.get(
                 arguments[0], self.c_display_help)
             method()
+
+    def c_change_current_paranoia(self, level):
+        """p [high|medium|low] Changes the level of paranoia """
+        global current_paranoia
+        global allowed_paranoia
+        if level[0] in allowed_paranoia:
+            lock.acquire()
+            current_paranoia = level[0]
+            lock.release()
+            logging.critical("Paranoia level is {}".format(level))
+        else:
+            logging.critical(
+                "{} is not a level allowed.".format(level) +
+                "It sould be {}".format(allowed_paranoia))
 
     def c_display_white_list(self):
         """lw: Prints the white listed domains """
@@ -235,8 +253,6 @@ class LogsChecker(Thread):
         self.deviation_alert_high = 10
         self.deviation_alert_medium = 30
         self.deviation_alert_low = 50
-        self.allowed_paranoia = ["paranoiac", "medium", "candid"]
-        self.current_paranoia = "paranoiac"
 
     def run(self):
         """
@@ -249,12 +265,6 @@ class LogsChecker(Thread):
                 dev = self.standard_deviation(access_log_cp[domain], domain)
                 self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
-
-    def change_current_paranoia(self, level):
-        """p [high|medium|low] Changes the level of paranoia """
-        lock.acquire()
-        self.current_paranoia = level
-        lock.release()
 
     def deal_with_dev(self, domain, dev):
         """
@@ -287,14 +297,14 @@ class LogsChecker(Thread):
         """
         if not dev:
             return False
-        if self.current_paranoia == "paranoiac":
+        if current_paranoia == "paranoiac":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
             elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
                 black_domains[domain] = dev
-        elif self.current_paranoia == "medium":
+        elif current_paranoia == "medium":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
@@ -308,7 +318,7 @@ class LogsChecker(Thread):
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev
-        elif self.current_paranoia == "candid":
+        elif current_paranoia == "candid":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev

@@ -105,7 +105,7 @@ class Console(Thread):
             "h": self.c_display_help,
             "lw": self.c_display_white_list,
             "lb": self.c_display_black_list,
-            "lwa": self.c_display_all_warnings,
+            "lwa": self.c_display_warnings,
             }
         command_multiple_arguments = {
             "ab": self.c_add_to_black_list,
@@ -138,21 +138,21 @@ class Console(Thread):
             logging.critical(
                 "{}".format(l) + " {}".format(warnings[w][l]))
 
-    def c_display_all_warnings(self):
-        """ lwa: Prints the warnings """
-        for w in warnings:
-            logging.critical("level {}".format(w))
-            self.__log_warnings(w, warnings)
+    def c_display_warnings(self, level="all"):
+        """lwa [high|medium|low] : prints the warnings (default : all)"""
+        if level == "all":
+            for w in warnings:
+                logging.critical("level {}".format(w))
+                self.__log_warnings(w, warnings)
 
-    def c_display_warnings(self, level):
-        lev = level[0]
-        if lev == "high":
-            print("ccccc")
-            self.__log_warnings(lev, warnings)
-        if lev == "medium":
-            self.__log_warnings(lev, warnings)
-        if lev == "low":
-            self.__log_warnings(lev, warnings)
+        else:
+            lev = level[0]
+            if lev == "high":
+                self.__log_warnings(lev, warnings)
+            if lev == "medium":
+                self.__log_warnings(lev, warnings)
+            if lev == "low":
+                self.__log_warnings(lev, warnings)
 
     def c_add_to_while_list(self, domains):
         """aw [domains]: Adds domains to the white list"""

@@ -235,7 +235,7 @@ class LogsChecker(Thread):
         self.deviation_alert_high = 10
         self.deviation_alert_medium = 30
         self.deviation_alert_low = 50
-        self.level_of_paranoia = "paranoiac"
+        self.current_paranoia = "paranoiac"
 
     def run(self):
         """
@@ -249,10 +249,10 @@ class LogsChecker(Thread):
                 self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 
-    def change_level_of_paranoia(self, level):
+    def change_current_paranoia(self, level):
         """p [high|medium|low] Changes the level of paranoia """
         lock.acquire()
-        self.level_of_paranoia = level
+        self.current_paranoia = level
         lock.release()
 
     def deal_with_dev(self, domain, dev):
@@ -286,14 +286,14 @@ class LogsChecker(Thread):
         """
         if not dev:
             return False
-        if self.level_of_paranoia == "paranoiac":
+        if self.current_paranoia == "paranoiac":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
             elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
                 black_domains[domain] = dev
-        elif self.level_of_paranoia == "medium":
+        elif self.current_paranoia == "medium":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
@@ -307,7 +307,7 @@ class LogsChecker(Thread):
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev
-        elif self.level_of_paranoia == "candid":
+        elif self.current_paranoia == "candid":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev

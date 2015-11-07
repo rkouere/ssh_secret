@@ -8,7 +8,9 @@ In other words, we build an SSH-over-HTTP tunnel.
 
 ## Dependencies ##
 
-requests : to install on Ubuntu, we just need to install ``python3-pip``
+requests > 2.6.1 : to install on Ubuntu : 
+    + install ``python3-pip``
+    + pip3 install --upgrade requests
 
 ## Definitions ##
 

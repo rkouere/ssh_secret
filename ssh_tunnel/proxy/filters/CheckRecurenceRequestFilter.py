@@ -8,6 +8,7 @@ import time
 from urllib.parse import urlparse
 
 black_domains = {}
+white_domains = {}
 access_log = {}
 lock = Lock()
 
@@ -21,6 +22,7 @@ class CheckRecurenceRequestFilter(Filter):
     def __init__(self):
         LogsChecker(5).start()
         LogsCleaning().start()
+        console().start()
 
     def drop(self, path, headers, body):
         """
@@ -33,7 +35,8 @@ class CheckRecurenceRequestFilter(Filter):
         if domain not in black_domains:
             self.addToLog(domain)
             return (False, "")
-        return (True, "Standard deviation too low : {} < 10".format(black_domains[domain]))
+        return (True, "Standard deviation too low : {} < 10".format(
+            black_domains[domain]))
 
     def addToLog(self, domain):
         """
@@ -47,6 +50,32 @@ class CheckRecurenceRequestFilter(Filter):
         lock.release()
 
 
+class console(Thread):
+    """
+    Let's us interact with the system
+    """
+    def __init__(self):
+        ''' Constructor. '''
+        Thread.__init__(self)
+
+    def run(self):
+        while True:
+            command = input('Enter your name: ')
+            self.parse_arguments(command)
+
+    def parse_arguments(self, arg):
+        options = {
+            "h": self.display_help,
+            "lw": self.display_white_list}
+        options.get(arg, "nothing")()
+
+    def display_white_list(self):
+        logging.critical("{}".format(white_domains))
+
+    def display_help(self):
+        print("")
+
+
 class LogsCleaning(Thread):
     """
     Will look at all the logs and remove the domains which have not been
@@ -54,7 +83,8 @@ class LogsCleaning(Thread):
     """
     def __init__(self):
         Thread.__init__(self)
-        self.latest_access = 10*1000  # minimum time of inactivity between now and the latest access
+        # minimum time of inactivity between now and the latest access
+        self.latest_access = 10*1000
         self.time_interval = 5*60  # time interval between checksminutes
         logging.debug("Thread LogsCleaning started")
 

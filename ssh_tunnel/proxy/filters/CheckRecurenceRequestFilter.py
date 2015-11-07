@@ -75,12 +75,11 @@ class console(Thread):
             "lb": self.display_black_list,
             }
         command_multiple_arguments = {
-            "ab": self.display_black_list,
+            "ab": self.add_to_black_list,
         }
         # check if the command also has arguments
         arguments = arg.split(" ")
         if len(arguments) > 1:
-            print(arguments[1:])
             method = command_multiple_arguments.get(
                 arguments[0], self.display_help)
             method(arguments[1:])
@@ -95,11 +94,13 @@ class console(Thread):
     def display_black_list(self):
         logging.critical("{}".format(black_domains))
 
-    def add_to_black_list(self, domain):
+    def add_to_black_list(self, domains):
         """
         """
         lock.acquire()
-        black_domains[domain] = "0"
+        for i in domains:
+            black_domains[i] = "0"
+        lock.release()
 
     def display_help(self, arg=None):
         arguments = {

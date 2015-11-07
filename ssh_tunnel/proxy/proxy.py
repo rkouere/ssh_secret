@@ -5,6 +5,8 @@ import io
 import logging
 import socket
 from time import clock
+import pkg_resources
+import sys
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -195,6 +197,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
 class ThreadedProxyServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
+
+def checkModuleVersion(name):
+    version = pkg_resources.get_distribution(name).version
+    logging.debug("Requests version = {}".format(version))
+    if version < "2.6.2":
+        logging.info(
+            "Your version of requests is out of date (< 2.6.2).\n" +
+            "You need to update requests (sudo pip3 install --upgrade " +
+            "requests) to run this proxy.")
+        sys.exit(1)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--bind', '-b', default='', metavar='ADDRESS',
@@ -215,6 +228,7 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.INFO)
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
+    checkModuleVersion("requests")
     logging.info("Server starting")
     logging.debug("Verbose on")
     filters = load_filters_from_list(args.filters)

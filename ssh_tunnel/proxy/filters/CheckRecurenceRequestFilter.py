@@ -210,6 +210,7 @@ class LogsChecker(Thread):
         self.time_interval = time_interval
         self.minimum_number_of_request = 50
         self.deviation_alert_high = 10
+        self.deviation_alert_low = 50
         self.paranoia_level = "paranoiac"
 
     def run(self):
@@ -254,7 +255,9 @@ class LogsChecker(Thread):
                 -- add to low level warning
         """
         if self.paranoia_level == "paranoiac":
-            if dev and dev < self.deviation_alert_high:
+            if dev and dev < self.deviation_alert_low and domain.startswith("http://www"):
+                warnings[0][domain] = dev
+            elif dev and dev < self.deviation_alert_high:
                 black_domains[domain] = dev
 
     def standard_deviation(self, array, domain):

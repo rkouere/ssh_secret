@@ -105,6 +105,7 @@ class console(Thread):
             "ab": self.c_add_to_black_list,
             "aw": self.c_add_to_while_list,
             "rb": self.c_remove_from_black_list,
+            "rw": self.c_remove_from_white_list,
         }
         # check if the command also has arguments
         arguments = arg.split(" ")
@@ -140,10 +141,17 @@ class console(Thread):
         lock.release()
 
     def c_remove_from_black_list(self, domains):
-        """ab [domains]: Remove domains from the black list"""
+        """ab [domains]: remove domains from the black list"""
         lock.acquire()
         for i in domains:
             del black_domains[i]
+        lock.release()
+
+    def c_remove_from_white_list(self, domains):
+        """rb [domains]: Remove domains from the white list"""
+        lock.acquire()
+        for i in domains:
+            del white_domains[i]
         lock.release()
 
 

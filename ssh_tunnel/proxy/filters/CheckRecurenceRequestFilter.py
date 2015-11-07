@@ -78,7 +78,9 @@ class console(Thread):
             "lw": "print the white listed domains"
         }
         for i in arguments:
-            logging.critical("{} = ".format(i) + "{}".format(arguments[i]))
+            logging.critical(
+                "The list of valid commands are : \n{} = "
+                .format(i) + "{}".format(arguments[i]))
 
 
 class LogsCleaning(Thread):

@@ -6,6 +6,7 @@ from math import sqrt
 import logging
 import time
 from urllib.parse import urlparse
+from lib.colors import bcolors
 
 black_domains = {}
 white_domains = {}
@@ -77,10 +78,13 @@ class console(Thread):
             "h": "print this help message",
             "lw": "print the white listed domains"
         }
+        logging.critical(
+            bcolors.BOLD +
+            "The list of valid commands are :" + bcolors.ENDC)
         for i in arguments:
             logging.critical(
-                "The list of valid commands are : \n{} = "
-                .format(i) + "{}".format(arguments[i]))
+                "{} = ".format(i) +
+                "{}".format(arguments[i]))
 
 
 class LogsCleaning(Thread):

@@ -126,14 +126,14 @@ class console(Thread):
         logging.critical("{}".format(black_domains))
 
     def c_add_to_while_list(self, domains):
-        """aw [domains]: Adds a domain to the white list"""
+        """aw [domains]: Adds domains to the white list"""
         lock.acquire()
         for i in domains:
             white_domains[i] = "Manual"
         lock.release()
 
     def c_add_to_black_list(self, domains):
-        """ab [domains]: Adds a domain to the black list"""
+        """ab [domains]: Adds domains to the black list"""
         lock.acquire()
         for i in domains:
             black_domains[i] = "Manual"

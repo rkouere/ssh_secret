@@ -67,7 +67,7 @@ class console(Thread):
         options = {
             "h": self.display_help,
             "lw": self.display_white_list}
-        options.get(arg, "nothing")()
+        options.get(arg, self.display_help)()
 
     def display_white_list(self):
         logging.critical("{}".format(white_domains))

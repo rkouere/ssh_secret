@@ -13,6 +13,11 @@ white_domains = {}
 access_log = {}
 lock = Lock()
 
+# 0 low
+# 1 medium
+# 2 high
+warnings = {0: {}, 1: {}, 2: {}}
+
 
 class CheckRecurenceRequestFilter(Filter):
     """

@@ -89,20 +89,22 @@ class console(Thread):
             method()
 
     def display_white_list(self):
+        """ Prints the white listed domains """
         logging.critical("{}".format(white_domains))
 
     def display_black_list(self):
+        """ Prints the black listed domains """
         logging.critical("{}".format(black_domains))
 
     def add_to_black_list(self, domains):
-        """
-        """
+        """Adds a domain to the black list"""
         lock.acquire()
         for i in domains:
             black_domains[i] = "0"
         lock.release()
 
     def display_help(self, arg=None):
+        """ Prints this help message """
         arguments = {
             "h": "print this help message",
             "lw": "print the white listed domains",

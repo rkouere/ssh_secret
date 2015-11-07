@@ -28,7 +28,7 @@ class CheckRecurenceRequestFilter(Filter):
     def __init__(self):
         LogsChecker(5).start()
         LogsCleaning().start()
-        console().start()
+        Console().start()
 
     def drop(self, path, headers, body):
         """
@@ -68,7 +68,7 @@ def getUserMethodsFromClass(c):
     return user_methods
 
 
-class console(Thread):
+class Console(Thread):
     """
     Let's us interact with the system
     """
@@ -91,10 +91,10 @@ class console(Thread):
         logging.critical(
             bcolors.BOLD +
             "The list of valid commands are :" + bcolors.ENDC)
-        arguments = getUserMethodsFromClass(console)
+        arguments = getUserMethodsFromClass(Console)
         for i in arguments:
             if i.startswith("c_"):
-                print(getattr(console, i).__doc__)
+                print(getattr(Console, i).__doc__)
 
     def __parse_arguments__(self, arg):
         """
@@ -209,7 +209,8 @@ class LogsChecker(Thread):
         Thread.__init__(self)
         self.time_interval = time_interval
         self.minimum_number_of_request = 50
-        self.deviation_minimum = 10
+        self.deviation_alert_high = 10
+        self.paranoia_level = "paranoiac"
 
     def run(self):
         """
@@ -220,9 +221,41 @@ class LogsChecker(Thread):
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
                 dev = self.standard_deviation(access_log_cp[domain], domain)
-                if dev and dev < self.deviation_minimum:
-                    black_domains[domain] = dev
+                self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
+
+    def deal_with_dev(self, domain, dev):
+        """
+        Logs a domain with a high level of access
+        According to the level of paranoia around, chooses what to do
+        Paranoid :
+            - IP based URL/non www :
+                -- dev < high alert level : add in warning high, alert user
+                   and ban domain
+                -- dev < medium aler level : add in warning medium, alert user
+                   and ban domain
+                -- dev < low alert level : add in low level warning
+            - www based URL :
+                -- add to low level warning
+        Medium
+            - IP based URL/non www :
+                -- dev < high alert level : add in warning high, alert user and
+                   ban domain
+                -- dev < medium aler level : add in warning medium, alert user
+                -- dev < low alert level : add in low level warning
+            - www based URL :
+                -- add to low level warning
+       Low
+            - IP based URL/non www :
+                -- dev < high alert level : add in warning high, alert user
+                -- dev < medium aler level : add in warning medium, alert user
+                -- dev < low alert level : add in low level warning
+            - www based URL :
+                -- add to low level warning
+        """
+        if self.paranoia_level == "paranoiac":
+            if dev and dev < self.deviation_alert_high:
+                black_domains[domain] = dev
 
     def standard_deviation(self, array, domain):
         """

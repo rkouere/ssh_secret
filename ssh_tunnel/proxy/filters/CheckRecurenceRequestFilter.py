@@ -51,6 +51,18 @@ class CheckRecurenceRequestFilter(Filter):
         lock.release()
 
 
+def getUserMethodsFromClass(c):
+    """
+    Lists user's defined methods
+    """
+    methods = dir(c)
+    user_methods = []
+    for i in methods:
+        if not i.startswith("__"):
+            user_methods.append(i)
+    return user_methods
+
+
 class console(Thread):
     """
     Let's us interact with the system
@@ -62,64 +74,10 @@ class console(Thread):
     def run(self):
         while True:
             command = input('> ')
-            self.parse_arguments(command)
+            self.__parse_arguments__(command)
 
-    def parse_arguments(self, arg):
-        """
-        Parses the commands
-        """
-        # list of valid commands
-        command_one_arg = {
-            "h": self.display_help,
-            "lw": self.display_white_list,
-            "lb": self.display_black_list,
-            }
-        command_multiple_arguments = {
-            "ab": self.add_to_black_list,
-            "aw": self.add_to_while_list,
-        }
-        # check if the command also has arguments
-        arguments = arg.split(" ")
-        if len(arguments) > 1:
-            method = command_multiple_arguments.get(
-                arguments[0], self.display_help)
-            method(arguments[1:])
-        else:
-            method = command_one_arg.get(
-                arguments[0], self.display_help)
-            method()
-
-    def display_white_list(self):
-        """ Prints the white listed domains """
-        logging.critical("{}".format(white_domains))
-
-    def display_black_list(self):
-        """ Prints the black listed domains """
-        logging.critical("{}".format(black_domains))
-
-    def add_to_while_list(self, domains):
-        """Adds a domain to the white list"""
-        lock.acquire()
-        for i in domains:
-            white_domains[i] = "Manual"
-        lock.release()
-
-    def add_to_black_list(self, domains):
-        """Adds a domain to the black list"""
-        lock.acquire()
-        for i in domains:
-            black_domains[i] = "Manual"
-        lock.release()
-
-    def display_help(self, arg=None):
-        """ Prints this help message """
-        arguments = {
-            "h": "print this help message",
-            "lw": "print the white listed domains",
-            "lb": "print the black listed domains",
-            "ab [domains]": "adds domains to the black list",
-            "aw [domains]": "adds a domains to the white list",
-        }
+    def c_display_help(self, arg=None):
+        """[h] Prints this help message """
         if arg:
             logging.critical(
                 bcolors.RED +
@@ -128,10 +86,57 @@ class console(Thread):
         logging.critical(
             bcolors.BOLD +
             "The list of valid commands are :" + bcolors.ENDC)
+        arguments = getUserMethodsFromClass(console)
         for i in arguments:
-            logging.critical(
-                "{} = ".format(i) +
-                "{}".format(arguments[i]))
+            if i.startswith("c_"):
+                print(getattr(console, i).__doc__)
+
+    def __parse_arguments__(self, arg):
+        """
+        Parses the commands
+        """
+        # list of valid commands
+        command_one_arg = {
+            "h": self.c_display_help,
+            "lw": self.c_display_white_list,
+            "lb": self.c_display_black_list,
+            }
+        command_multiple_arguments = {
+            "ab": self.c_add_to_black_list,
+            "aw": self.c_add_to_while_list,
+        }
+        # check if the command also has arguments
+        arguments = arg.split(" ")
+        if len(arguments) > 1:
+            method = command_multiple_arguments.get(
+                arguments[0], self.c_display_help)
+            method(arguments[1:])
+        else:
+            method = command_one_arg.get(
+                arguments[0], self.c_display_help)
+            method()
+
+    def c_display_white_list(self):
+        """lw: Prints the white listed domains """
+        logging.critical("{}".format(white_domains))
+
+    def c_display_black_list(self):
+        """lb: Prints the black listed domains """
+        logging.critical("{}".format(black_domains))
+
+    def c_add_to_while_list(self, domains):
+        """aw [domains]: Adds a domain to the white list"""
+        lock.acquire()
+        for i in domains:
+            white_domains[i] = "Manual"
+        lock.release()
+
+    def c_add_to_black_list(self, domains):
+        """ab [domains]: Adds a domain to the black list"""
+        lock.acquire()
+        for i in domains:
+            black_domains[i] = "Manual"
+        lock.release()
 
 
 class LogsCleaning(Thread):

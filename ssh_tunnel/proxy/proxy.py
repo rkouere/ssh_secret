@@ -223,11 +223,29 @@ if __name__ == '__main__':
                                                                                            'none']))
     args = parser.parse_args()
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.DEBUG)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            datefmt='%m-%d %H:%M',
+            filename='proxy.log',
+            filemode='w')
+        # define a Handler which writes INFO messages or higher to the sys.stderr
+        console = logging.StreamHandler()
+        console.setLevel(logging.CRITICAL)
+        # add the handler to the root logger
+        logging.getLogger('').addHandler(console)
     else:
-        logging.basicConfig(level=logging.INFO)
-        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            datefmt='%m-%d %H:%M',
+            filename='proxy.log',
+            filemode='w')
+        # define a Handler which writes INFO messages or higher to the sys.stderr
+        console = logging.StreamHandler()
+        console.setLevel(logging.CRITICAL)
+        # add the handler to the root logger
+        logging.getLogger('').addHandler(console)
     checkModuleVersion("requests")
     logging.info("Server starting")
     logging.debug("Verbose on")

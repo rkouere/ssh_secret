@@ -233,6 +233,7 @@ class LogsChecker(Thread):
         self.time_interval = time_interval
         self.minimum_number_of_request = 50
         self.deviation_alert_high = 10
+        self.deviation_alert_medium = 30
         self.deviation_alert_low = 50
         self.paranoia_level = "paranoiac"
 
@@ -277,11 +278,45 @@ class LogsChecker(Thread):
             - www based URL :
                 -- add to low level warning
         """
+        if not dev:
+            return False
         if self.paranoia_level == "paranoiac":
-            if dev and dev < self.deviation_alert_low and domain.startswith("http://www"):
+            if dev < self.deviation_alert_low and domain.startswith(
+                    "http://www"):
                 warnings["low"][domain] = dev
-            elif dev and dev < self.deviation_alert_high:
+            elif dev < self.deviation_alert_high:
+                logging.critical("added {} to the blacklist".format(domain))
                 black_domains[domain] = dev
+        elif self.paranoia_level == "medium":
+            if dev < self.deviation_alert_low and domain.startswith(
+                    "http://www"):
+                warnings["low"][domain] = dev
+            elif dev < self.deviation_alert_high:
+                logging.critical("added {} to the blacklist".format(domain))
+                black_domains[domain] = dev
+            elif dev < self.deviation_alert_medium:
+                logging.critical(
+                    "the domain {} is acting funny." +
+                    " You better check it out... NOW".format(domain))
+                warnings["medium"][domain] = dev
+            elif dev < self.deviation_alert_low:
+                warnings["low"][domain] = dev
+        elif self.paranoia_level == "candid":
+            if dev < self.deviation_alert_low and domain.startswith(
+                    "http://www"):
+                warnings["low"][domain] = dev
+            elif dev < self.deviation_alert_high:
+                logging.critical("added {} to the blacklist".format(domain))
+                warnings["high"][domain] = dev
+            elif dev < self.deviation_alert_medium:
+                logging.critical(
+                    "the domain {} is acting funny." +
+                    "You better check it out... NOW".format(domain))
+                warnings["medium"][domain] = dev
+            elif dev < self.deviation_alert_low:
+                warnings["low"][domain] = dev
+
+        return True
 
     def standard_deviation(self, array, domain):
         """

@@ -235,6 +235,7 @@ class LogsChecker(Thread):
         self.deviation_alert_high = 10
         self.deviation_alert_medium = 30
         self.deviation_alert_low = 50
+        self.allowed_paranoia = ["paranoiac", "medium", "candid"]
         self.current_paranoia = "paranoiac"
 
     def run(self):

@@ -60,7 +60,7 @@ class console(Thread):
 
     def run(self):
         while True:
-            command = input('Enter your name: ')
+            command = input('> ')
             self.parse_arguments(command)
 
     def parse_arguments(self, arg):
@@ -73,7 +73,12 @@ class console(Thread):
         logging.critical("{}".format(white_domains))
 
     def display_help(self):
-        print("")
+        arguments = {
+            "h": "print this help message",
+            "lw": "print the white listed domains"
+        }
+        for i in arguments:
+            logging.critical("{} = ".format(i) + "{}".format(arguments[i]))
 
 
 class LogsCleaning(Thread):

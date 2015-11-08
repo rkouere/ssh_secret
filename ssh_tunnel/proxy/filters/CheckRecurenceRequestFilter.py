@@ -260,8 +260,9 @@ class LogsChecker(Thread):
         while True:
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                dev = self.standard_deviation(access_log_cp[domain], domain)
-                self.deal_with_dev(domain, dev)
+                if domain not in black_domains:
+                    dev = self.standard_deviation(access_log_cp[domain], domain)
+                    self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 
     def deal_with_dev(self, domain, dev):

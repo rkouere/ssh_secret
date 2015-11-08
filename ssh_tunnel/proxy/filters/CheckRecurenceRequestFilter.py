@@ -274,6 +274,16 @@ class LogsChecker(Thread):
         self.deviation_alert_medium = 30
         self.deviation_alert_low = 50
 
+    def is_domain_in_warnings(self, domain):
+        """
+        Checks wether a domain is in one of the warning lists
+        Returns True if a domain is in one of the list
+        """
+        for w in warnings:
+            if domain in warnings[w]:
+                return True
+        return False
+
     def run(self):
         """
         Every x seconds, makes a copy of all the requests we had
@@ -282,7 +292,8 @@ class LogsChecker(Thread):
         while True:
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                if domain not in black_domains and domain not in warnings["high"]:
+                if domain not in black_domains \
+                        and not self.is_domain_in_warnings(domain):
                     dev = self.standard_deviation(
                         access_log_cp[domain], domain)
                     self.deal_with_dev(domain, dev)
@@ -348,8 +359,10 @@ class LogsChecker(Thread):
             # but only logg the other ones
             elif dev < self.deviation_alert_medium:
                 logging.critical(
+                    bcolors.WARNING +
                     "[medium] the domain {} is acting funny." +
-                    " You better check it out... NOW".format(domain))
+                    " You better check it out... NOW".format(domain) +
+                    bcolors.ENDC)
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev

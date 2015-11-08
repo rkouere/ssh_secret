@@ -59,7 +59,7 @@ class CheckRecurenceRequestFilter(Filter):
         lock.release()
 
 
-def add_to_list(lock, _list, domain, dev):
+def add_to_list(lock, _list, domain, dev="Manual"):
     """
     Adds one domain to a list
     Takes a lock, the list, the name of the domain, the
@@ -67,6 +67,16 @@ def add_to_list(lock, _list, domain, dev):
     """
     lock.acquire()
     _list[domain] = dev
+    lock.release()
+
+
+def remove_from_list(lock, _list, domain):
+    """
+    Remove one domain from a list
+    Takes a lock, the list, the name of the domain
+    """
+    lock.acquire()
+    del _list[domain]
     lock.release()
 
 
@@ -185,25 +195,30 @@ class Console(Thread):
         """aw [domains]: adds domains to the white list"""
         for i in domains:
             add_to_list(lock, white_domains, i)
+            logging.critical("Added {} to the white list".format(i))
 
     def c_add_to_black_list(self, domains):
         """ab [domains]: adds domains to the black list"""
         for i in domains:
-            add_to_list(lock, white_domains, i)
+            add_to_list(lock, black_domains, i)
+            logging.critical("Added {} to the black list".format(i))
 
     def c_remove_from_black_list(self, domains):
-        """rb [domains]: remove domains from the black list"""
-        lock.acquire()
+        """rb [domains]: remove domains from the black list
+        and deletes all the data from this domain"""
         for i in domains:
-            del black_domains[i]
-        lock.release()
+            remove_from_list(lock, black_domains, i)
+            lock.acquire()
+            del access_log[i]
+            lock.release()
+            logging.critical(
+                "Removed {} from the black list and the access log".format(i))
 
     def c_remove_from_white_list(self, domains):
         """rw [domains]: remove domains from the white list"""
-        lock.acquire()
         for i in domains:
-            del white_domains[i]
-        lock.release()
+            remove_from_list(lock, white_domains, i)
+            logging.critical("Removed {} from the white list".format(i))
 
 
 class LogsCleaning(Thread):

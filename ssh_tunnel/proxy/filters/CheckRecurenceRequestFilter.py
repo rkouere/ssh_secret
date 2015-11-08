@@ -282,7 +282,7 @@ class LogsChecker(Thread):
         while True:
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
-                if domain not in black_domains:
+                if domain not in black_domains and domain not in warnings["high"]:
                     dev = self.standard_deviation(
                         access_log_cp[domain], domain)
                     self.deal_with_dev(domain, dev)
@@ -345,12 +345,15 @@ class LogsChecker(Thread):
                     "http://www"):
                 warnings["low"][domain] = dev
             elif dev < self.deviation_alert_high:
-                logging.critical("added {} to the blacklist".format(domain))
+                logging.critical(
+                    bcolors.RED + "[high] " + bcolors.ENDC +
+                    "the domain {} is acting funny.".format(domain) +
+                    "You better check it out... NOW")
                 warnings["high"][domain] = dev
             elif dev < self.deviation_alert_medium:
                 logging.critical(
-                    "the domain {} is acting funny." +
-                    "You better check it out... NOW".format(domain))
+                    "the domain {} is acting funny.".format(domain) +
+                    "You better check it out... NOW")
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev

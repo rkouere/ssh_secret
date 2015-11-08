@@ -18,6 +18,7 @@ lock = Lock()
 # 1 medium
 # 2 high
 warnings = {"low": {}, "medium": {}, "high": {}}
+minimum_number_of_request = 50
 
 allowed_paranoia = ["paranoiac", "medium", "candid"]
 current_paranoia = "paranoiac"
@@ -158,6 +159,7 @@ class Console(Thread):
             "rw": self.c_remove_from_white_list,
             "lwa": self.c_display_warnings,
             "p": self.c_change_current_paranoia,
+            "laal": self.c_display_standard_deviation_access_log,
         }
         # check if the command also has arguments
         arguments = arg.split(" ")
@@ -196,12 +198,24 @@ class Console(Thread):
         """lal: prints the access log """
         self.__log_warnings(access_log)
 
-    def c_display_standard_deviation_access_log(self):
+    def c_display_standard_deviation_access_log(self, res="min"):
         """laal: prints the average sd of each domain """
-        for l in access_log:
-            dev = standard_deviation(access_log[l], 0)
-            ip = get_ips_for_host(l[7:-1])
-            logging.critical("{} ({}) -- {}".format(l, ip, dev))
+        access_log_cp = deepcopy(access_log)
+        for l in access_log_cp:
+            nb_conn = len(access_log_cp[l])
+            if res == "min":
+                if nb_conn > minimum_number_of_request:
+                    dev = standard_deviation(access_log_cp[l], 0)
+                    ip = get_ips_for_host(l[7:-1])
+                    logging.critical(
+                        "{} ({}) -- sd {} -- nb conn = {}"
+                        .format(l, ip, dev, len(access_log_cp[l])))
+            else:
+                dev = standard_deviation(access_log_cp[l], 0)
+                ip = get_ips_for_host(l[7:-1])
+                logging.critical(
+                    "{} ({}) -- sd {} -- nb conn = {}"
+                    .format(l, ip, dev, len(access_log_cp[l])))
 
     def __log_warnings(self, warnings):
         """
@@ -314,7 +328,6 @@ class LogsChecker(Thread):
         ''' Constructor. '''
         Thread.__init__(self)
         self.time_interval = time_interval
-        self.minimum_number_of_request = 50
         self.deviation_alert_high = 10
         self.deviation_alert_medium = 30
         self.deviation_alert_low = 50
@@ -341,7 +354,7 @@ class LogsChecker(Thread):
                         and not self.is_domain_in_warnings(domain):
                     dev = standard_deviation(
                         access_log_cp[domain],
-                        self.minimum_number_of_request)
+                        minimum_number_of_request)
                     self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 

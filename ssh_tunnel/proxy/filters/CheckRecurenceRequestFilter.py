@@ -59,14 +59,14 @@ class CheckRecurenceRequestFilter(Filter):
         lock.release()
 
 
-def add_to_list(self, lock, _list, domain, ip, dev):
+def add_to_list(lock, _list, domain, dev):
     """
     Adds one domain to a list
     Takes a lock, the list, the name of the domain, the
     ip of the domain and the standard deviation
     """
     lock.acquire()
-    _list[domain] = "Manual" + " -- {}".format(ip) + " -- {}".format(dev)
+    _list[domain] = dev
     lock.release()
 
 
@@ -192,14 +192,14 @@ class Console(Thread):
             add_to_list(lock, white_domains, i)
 
     def c_remove_from_black_list(self, domains):
-        """rab [domains]: remove domains from the black list"""
+        """rb [domains]: remove domains from the black list"""
         lock.acquire()
         for i in domains:
             del black_domains[i]
         lock.release()
 
     def c_remove_from_white_list(self, domains):
-        """rb [domains]: remove domains from the white list"""
+        """rw [domains]: remove domains from the white list"""
         lock.acquire()
         for i in domains:
             del white_domains[i]
@@ -310,14 +310,14 @@ class LogsChecker(Thread):
                 warnings["low"][domain] = dev
             elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
-                black_domains[domain] = dev
+                add_to_list(lock, black_domains, domain, dev)
         elif current_paranoia == "medium":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
             elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
-                black_domains[domain] = dev
+                add_to_list(lock, black_domains, domain, dev)
             elif dev < self.deviation_alert_medium:
                 logging.critical(
                     "the domain {} is acting funny." +

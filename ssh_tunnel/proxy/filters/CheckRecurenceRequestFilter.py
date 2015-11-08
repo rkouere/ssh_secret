@@ -58,13 +58,16 @@ class CheckRecurenceRequestFilter(Filter):
             access_log[domain] = [time.time()]
         lock.release()
 
-    def add_to_list(self, _list, domain, ip, dev):
-        """
-        Adds one domain to a list
-        """
-        lock.acquire()
-        _list[domain] = "Manual" + " -- {}".format(ip) + " -- {}".format(dev)
-        lock.release()
+
+def add_to_list(self, lock, _list, domain, ip, dev):
+    """
+    Adds one domain to a list
+    Takes a lock, the list, the name of the domain, the
+    ip of the domain and the standard deviation
+    """
+    lock.acquire()
+    _list[domain] = "Manual" + " -- {}".format(ip) + " -- {}".format(dev)
+    lock.release()
 
 
 def getUserMethodsFromClass(c):
@@ -180,20 +183,16 @@ class Console(Thread):
 
     def c_add_to_while_list(self, domains):
         """aw [domains]: adds domains to the white list"""
-        lock.acquire()
         for i in domains:
-            white_domains[i] = "Manual"
-        lock.release()
+            add_to_list(lock, white_domains, i)
 
     def c_add_to_black_list(self, domains):
         """ab [domains]: adds domains to the black list"""
-        lock.acquire()
         for i in domains:
-            black_domains[i] = "Manual"
-        lock.release()
+            add_to_list(lock, white_domains, i)
 
     def c_remove_from_black_list(self, domains):
-        """ab [domains]: remove domains from the black list"""
+        """rab [domains]: remove domains from the black list"""
         lock.acquire()
         for i in domains:
             del black_domains[i]
@@ -269,7 +268,8 @@ class LogsChecker(Thread):
             access_log_cp = deepcopy(access_log)
             for domain in access_log_cp:
                 if domain not in black_domains:
-                    dev = self.standard_deviation(access_log_cp[domain], domain)
+                    dev = self.standard_deviation(
+                        access_log_cp[domain], domain)
                     self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 

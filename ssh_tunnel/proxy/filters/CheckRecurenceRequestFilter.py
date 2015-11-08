@@ -317,22 +317,30 @@ class LogsChecker(Thread):
             - www based URL :
                 -- add to low level warning
         """
+        # si on a pas de données concernant la dev, on stop
         if not dev:
             return False
         if current_paranoia == "paranoiac":
+            # We only log info www
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
+            # a program is probably trying to access the web
+            # as any good paranoiac knows, there MUST be something going on
             elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
                 add_to_list(lock, black_domains, domain, dev)
+
         elif current_paranoia == "medium":
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev
+            # we are still a bit on the effy side...
+            # we block high alerts
             elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
                 add_to_list(lock, black_domains, domain, dev)
+            # but only logg the other ones
             elif dev < self.deviation_alert_medium:
                 logging.critical(
                     "the domain {} is acting funny." +
@@ -340,7 +348,10 @@ class LogsChecker(Thread):
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev
+
         elif current_paranoia == "candid":
+            # hippy style... people can only be nice on the web
+            # we only logg informations but tell the user
             if dev < self.deviation_alert_low and domain.startswith(
                     "http://www"):
                 warnings["low"][domain] = dev

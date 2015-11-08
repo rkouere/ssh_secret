@@ -193,32 +193,32 @@ class Console(Thread):
 
     def c_display_access_log(self):
         """lal: prints the access log """
-        logging.critical("{}".format(access_log))
+        self.__log_warnings(access_log)
 
-    def __log_warnings(self, w, warnings):
+    def __log_warnings(self, warnings):
         """
         Displays the warning contained in w
         """
-        for l in warnings[w]:
-            ip = get_ips_for_host(l[7:])
+        for l in warnings:
+            # ip = get_ips_for_host(l[7:])
             logging.critical(
-                "{} {} {}".format(l, ip, warnings[w][l]))
+                "{} {}".format(l, warnings[l]))
 
     def c_display_warnings(self, level="all"):
         """lwa [high|medium|low]: prints the warnings (default : all)"""
         if level == "all":
             for w in warnings:
                 logging.critical("level {}".format(w))
-                self.__log_warnings(w, warnings)
+                self.__log_warnings(warnings[w])
 
         else:
             lev = level[0]
             if lev == "high":
-                self.__log_warnings(lev, warnings)
+                self.__log_warnings(warnings[lev])
             if lev == "medium":
-                self.__log_warnings(lev, warnings)
+                self.__log_warnings(warnings[lev])
             if lev == "low":
-                self.__log_warnings(lev, warnings)
+                self.__log_warnings(warnings[lev])
 
     def c_add_to_while_list(self, domains):
         """aw [domains]: adds domains to the white list"""

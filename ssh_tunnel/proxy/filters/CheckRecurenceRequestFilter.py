@@ -177,9 +177,12 @@ class Console(Thread):
         logging.critical("{}".format(black_domains))
 
     def __log_warnings(self, w, warnings):
+        """
+        Displays the warning contained in w
+        """
         for l in warnings[w]:
             logging.critical(
-                "{}".format(l) + " {}".format(warnings[w][l]))
+                "{} {}".format(l, warnings[w][l]))
 
     def c_display_warnings(self, level="all"):
         """lwa [high|medium|low]: prints the warnings (default : all)"""

@@ -94,9 +94,9 @@ def get_ips_for_host(host):
         how-do-i-get-a-websites-ip-address-using-python-3-x
     """
     try:
-        ips = socket.gethostbyname_ex(host)
+        ips = socket.gethostbyname(host)
     except socket.gaierror:
-        ips = []
+        ips = "ip unknown"
     return ips
 
 
@@ -201,17 +201,18 @@ class Console(Thread):
         for l in access_log:
             tmp = 0.0
             for i, val in enumerate(access_log[l]):
+                ip = get_ips_for_host(l[7:-1])
                 tmp += float(access_log[l][i])
-            logging.critical("{} {}".format(l, tmp/(i+1)))
+            logging.critical("{} ({}) -- {}".format(l, ip, tmp/(i+1)))
 
     def __log_warnings(self, warnings):
         """
         Displays the warning contained in w
         """
         for l in warnings:
-            # ip = get_ips_for_host(l[7:])
+            ip = get_ips_for_host(l[7:-1])
             logging.critical(
-                "{} {}".format(l, warnings[l]))
+                "{} ({}) -- {}".format(l, ip, warnings[l]))
 
     def c_display_warnings(self, level="all"):
         """lwa [high|medium|low]: prints the warnings (default : all)"""
@@ -233,13 +234,15 @@ class Console(Thread):
         """aw [domains]: adds domains to the white list"""
         for i in domains:
             add_to_list(lock, white_domains, i)
-            logging.critical("Added {} to the white list".format(i))
+            ip = get_ips_for_host(i)
+            logging.critical("Added {} ({}) to the white list".format(i, ip))
 
     def c_add_to_black_list(self, domains):
         """ab [domains]: adds domains to the black list"""
         for i in domains:
             add_to_list(lock, black_domains, i)
-            logging.critical("Added {} to the black list".format(i))
+            ip = get_ips_for_host(i)
+            logging.critical("Added {} ({}) to the black list".format(i, ip))
 
     def c_remove_from_black_list(self, domains):
         """rb [domains]: remove domains from the black list

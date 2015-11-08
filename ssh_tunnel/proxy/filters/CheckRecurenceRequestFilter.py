@@ -78,6 +78,8 @@ def remove_from_list(lock, _list, domain):
     lock.acquire()
     try:
         del _list[domain]
+        if domain in access_log:
+            del access_log[domain]
         return True
     except:
         return False

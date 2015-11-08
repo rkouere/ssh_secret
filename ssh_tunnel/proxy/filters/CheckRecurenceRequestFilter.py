@@ -339,7 +339,9 @@ class LogsChecker(Thread):
                 if domain not in black_domains \
                         and not self.is_domain_in_warnings(domain):
                     dev = standard_deviation(
-                        access_log_cp[domain], domain, self.minimum_number_of_request)
+                        access_log_cp[domain],
+                        domain,
+                        self.minimum_number_of_request)
                     self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 

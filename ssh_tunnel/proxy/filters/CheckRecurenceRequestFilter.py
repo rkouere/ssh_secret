@@ -149,7 +149,6 @@ class Console(Thread):
             "lw": self.c_display_white_list,
             "lb": self.c_display_black_list,
             "lwa": self.c_display_warnings,
-            "lal": self.c_display_access_log,
             "laal": self.c_display_standard_deviation_access_log,
             }
         command_multiple_arguments = {
@@ -193,10 +192,6 @@ class Console(Thread):
     def c_display_black_list(self):
         """lb: prints the black listed domains """
         self.__log_warnings(black_domains)
-
-    def c_display_access_log(self):
-        """lal: prints the access log """
-        self.__log_warnings(access_log)
 
     def c_display_standard_deviation_access_log(self, res="min"):
         """laal: prints the average sd of each domain """

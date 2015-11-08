@@ -58,6 +58,14 @@ class CheckRecurenceRequestFilter(Filter):
             access_log[domain] = [time.time()]
         lock.release()
 
+    def add_to_list(self, _list, domain, ip, dev):
+        """
+        Adds one domain to a list
+        """
+        lock.acquire()
+        _list[domain] = "Manual" + " -- {}".format(ip) + " -- {}".format(dev)
+        lock.release()
+
 
 def getUserMethodsFromClass(c):
     """

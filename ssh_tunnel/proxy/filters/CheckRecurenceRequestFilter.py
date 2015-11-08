@@ -348,7 +348,7 @@ class LogsChecker(Thread):
             # but only logg the other ones
             elif dev < self.deviation_alert_medium:
                 logging.critical(
-                    "the domain {} is acting funny." +
+                    "[medium] the domain {} is acting funny." +
                     " You better check it out... NOW".format(domain))
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
@@ -365,8 +365,8 @@ class LogsChecker(Thread):
                 warnings["high"][domain] = dev
             elif dev < self.deviation_alert_medium:
                 logging.critical(
-                    "the domain {} is acting funny.".format(domain) +
-                    "You better check it out... NOW")
+                    "[medium] the domain {} is acting funny.".format(domain) +
+                    "Value = {}".format(dev))
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev

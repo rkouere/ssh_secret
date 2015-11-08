@@ -32,7 +32,7 @@ class CheckRecurenceRequestFilter(Filter):
     """
     def __init__(self):
         LogsChecker(5).start()
-        LogsCleaning().start()
+        # LogsCleaning().start()
         Console().start()
 
     def drop(self, path, headers, body):
@@ -283,9 +283,8 @@ class LogsCleaning(Thread):
     def __init__(self):
         Thread.__init__(self)
         # minimum time of inactivity between now and the latest access
-        self.latest_access = 10*1000
-        self.time_interval = 5*60  # time interval between checksminutes
-        logging.debug("Thread LogsCleaning started")
+        self.latest_access = 2*1000*60  # mil sec -> sec : x * 1000 * 60
+        self.time_interval = 20*60  # time interval between checksminutes
 
     def run(self):
         """
@@ -294,19 +293,38 @@ class LogsCleaning(Thread):
         """
         global access_log
         while 1:
+            logging.info(
+                bcolors.OKGREEN +
+                "LogsCleaning started" +
+                bcolors.ENDC)
             now = time.time()
+            logging.debug(
+                "[LogsCleaning] self.latest_access= {}"
+                .format(self.latest_access))
             lock.acquire()
             access_log_copy = deepcopy(access_log)
             lock.release()
+            logging.debug("[LogsCleaning] domain = {}".format(access_log_copy))
             for domain in access_log_copy:
                 latest_tmp = 0  # stock the latest access to the domain
                 for access in access_log_copy[domain]:
+                    logging.debug(
+                        "[LogsCleaning] access = {} {}"
+                        .format(domain, access))
                     if access > latest_tmp:
+                        logging.debug(
+                            "[LogsCleaning] access = {}"
+                            .format(time.ctime(int(access))) +
+                            "latest_tmp = {}"
+                            .format(time.ctime(int(latest_tmp))))
                         latest_tmp = access
-                    if latest_tmp < now - self.latest_access:
+                    logging.debug(
+                        "[LogsCleaning] now - latest = {}"
+                        .format(time.ctime(int(now - self.latest_access))))
+                    if latest_tmp < (now - self.latest_access):
                         logging.info(
-                            "domain {} has not been accessed for a long " +
-                            "time. Removed from the logs".format(domain))
+                            "domain {} has not been accessed".format(domain) +
+                            " for a long time. Removed from the logs")
                         del access_log[domain]
             sleep(self.time_interval)
 

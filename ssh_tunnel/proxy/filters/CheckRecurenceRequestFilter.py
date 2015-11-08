@@ -149,6 +149,7 @@ class Console(Thread):
             "lb": self.c_display_black_list,
             "lwa": self.c_display_warnings,
             "lal": self.c_display_access_log,
+            "laal": self.c_display_avg_access_log,
             }
         command_multiple_arguments = {
             "ab": self.c_add_to_black_list,
@@ -194,6 +195,14 @@ class Console(Thread):
     def c_display_access_log(self):
         """lal: prints the access log """
         self.__log_warnings(access_log)
+
+    def c_display_avg_access_log(self):
+        """laal: prints the average sd of each domain """
+        for l in access_log:
+            tmp = 0.0
+            for i, val in enumerate(access_log[l]):
+                tmp += float(access_log[l][i])
+            logging.critical("{} {}".format(l, tmp/(i+1)))
 
     def __log_warnings(self, warnings):
         """
@@ -440,7 +449,7 @@ class LogsChecker(Thread):
 
         return True
 
-    def standard_deviation(self, array, domain):
+    def standard_deviation(self, array, domain, minimum_number_of_request):
         """
         Calculates, for each timestamp, the average and the standard deviation
         If the standard deviation is under x, it means that we have to deal

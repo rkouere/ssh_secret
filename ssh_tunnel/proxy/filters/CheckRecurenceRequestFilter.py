@@ -338,8 +338,8 @@ class LogsChecker(Thread):
             for domain in access_log_cp:
                 if domain not in black_domains \
                         and not self.is_domain_in_warnings(domain):
-                    dev = self.standard_deviation(
-                        access_log_cp[domain], domain)
+                    dev = standard_deviation(
+                        access_log_cp[domain], domain, self.minimum_number_of_request)
                     self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 
@@ -449,32 +449,33 @@ class LogsChecker(Thread):
 
         return True
 
-    def standard_deviation(self, array, domain, minimum_number_of_request):
-        """
-        Calculates, for each timestamp, the average and the standard deviation
-        If the standard deviation is under x, it means that we have to deal
-        with a robot and we add it to the blacklist
-        We need a minimum of request to test it as a single access to a site
-        will give us a standard deviation of near 0
-        """
-        array_len = len(array)
-        if array_len > self.minimum_number_of_request:
-            average = 0
-            square_values = 0
-            # get the average
-            for i in array:
-                average += i
 
-            average = average/array_len
+def standard_deviation(array, domain, minimum_number_of_request):
+    """
+    Calculates, for each timestamp, the average and the standard deviation
+    If the standard deviation is under x, it means that we have to deal
+    with a robot and we add it to the blacklist
+    We need a minimum of request to test it as a single access to a site
+    will give us a standard deviation of near 0
+    """
+    array_len = len(array)
+    if array_len > minimum_number_of_request:
+        average = 0
+        square_values = 0
+        # get the average
+        for i in array:
+            average += i
 
-            for i in array:
-                tmp = i - average
-                square_values += pow(tmp, 2)
+        average = average/array_len
 
-            variance = square_values/array_len
-            standard_deviation = sqrt(variance)
-            logging.debug("average = {}".format(average))
-            logging.debug("standard deviation = {}".format(standard_deviation))
-            return standard_deviation
-        else:
-            return False
+        for i in array:
+            tmp = i - average
+            square_values += pow(tmp, 2)
+
+        variance = square_values/array_len
+        standard_deviation = sqrt(variance)
+        logging.debug("average = {}".format(average))
+        logging.debug("standard deviation = {}".format(standard_deviation))
+        return standard_deviation
+    else:
+        return False

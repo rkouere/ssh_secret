@@ -283,8 +283,8 @@ class LogsCleaning(Thread):
     def __init__(self):
         Thread.__init__(self)
         # minimum time of inactivity between now and the latest access
-        self.latest_access = 2*1000*60  # mil sec -> sec : x * 1000 * 60
-        self.time_interval = 20*60  # time interval between checksminutes
+        self.latest_access = 0.2*60  # x * 60 = seconds
+        self.time_interval = 0.1*60  # time interval between checksminutes
 
     def run(self):
         """
@@ -299,8 +299,9 @@ class LogsCleaning(Thread):
                 bcolors.ENDC)
             now = time.time()
             logging.debug(
-                "[LogsCleaning] self.latest_access= {}"
-                .format(self.latest_access))
+                "[LogsCleaning] self.latest_access = {}"
+                .format(self.latest_access) +
+                "now = {}".format(now))
             lock.acquire()
             access_log_copy = deepcopy(access_log)
             lock.release()
@@ -323,9 +324,11 @@ class LogsCleaning(Thread):
                         .format(time.ctime(int(now - self.latest_access))))
                     if latest_tmp < (now - self.latest_access):
                         logging.info(
+                            bcolors.OKGREEN +
                             "domain {} has not been accessed".format(domain) +
-                            " for a long time. Removed from the logs")
-                        del access_log[domain]
+                            " for a long time. Removed from the logs" +
+                            bcolors.ENDC)
+                        remove_from_list(lock, black_domains, domain)
             sleep(self.time_interval)
 
 

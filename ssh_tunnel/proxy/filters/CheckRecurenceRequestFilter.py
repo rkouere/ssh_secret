@@ -185,11 +185,11 @@ class Console(Thread):
 
     def c_display_white_list(self):
         """lw: prints the white listed domains """
-        logging.critical("{}".format(white_domains))
+        self.__log_warnings(white_domains)
 
     def c_display_black_list(self):
         """lb: prints the black listed domains """
-        logging.critical("{}".format(black_domains))
+        self.__log_warnings(black_domains)
 
     def c_display_access_log(self):
         """lal: prints the access log """

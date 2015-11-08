@@ -299,6 +299,15 @@ class LogsChecker(Thread):
                     self.deal_with_dev(domain, dev)
             sleep(self.time_interval)
 
+    def print_info(self, level, msg):
+        if level == "high":
+            color = bcolors.RED
+        elif level == "medium":
+            color = bcolors.WARNING
+        elif level == "low":
+            color = bcolors.OKBLUE
+        logging.critical(color + "[" + level + "] " + bcolors.ENDC + msg)
+
     def deal_with_dev(self, domain, dev):
         """
         Logs a domain with a high level of access
@@ -335,34 +344,43 @@ class LogsChecker(Thread):
         # We only log info www
         if domain.startswith("http://www"):
             warnings["low"][domain] = dev
-            return True
+            return False
 
         elif current_paranoia == "paranoiac":
-            # if the deviation is low, we only log it
-            if dev < self.deviation_alert_low:
-                logging.critical(
-                    "[low] the domain {} is acting funny." +
-                    " You better check it out... NOW".format(domain))
-                warnings["low"][domain] = dev
             # a program is probably trying to access the web
             # as any good paranoiac knows, there MUST be something going on
-            elif dev < self.deviation_alert_high:
-                logging.critical("added {} to the blacklist".format(domain))
+            if dev < self.deviation_alert_high:
+                self.print_info(
+                    "high",
+                    "added {} to the blacklist".format(domain))
                 add_to_list(lock, black_domains, domain, dev)
+            elif dev < self.deviation_alert_medium:
+                self.print_info(
+                    "high",
+                    "added {} to the blacklist".format(domain))
+                add_to_list(lock, black_domains, domain, dev)
+            # if the deviation is low, we only log it
+            elif dev < self.deviation_alert_low:
+                self.print_info(
+                    "low",
+                    "the domain {} is acting funny. Val = {}"
+                    .format(domain, dev))
+                warnings["low"][domain] = dev
 
         elif current_paranoia == "medium":
             # we are still a bit on the effy side...
             # we block high alerts
             if dev < self.deviation_alert_high:
-                logging.critical("added {} to the blacklist".format(domain))
+                self.print_info(
+                    "high ",
+                    "added {} to the blacklist".format(domain))
                 add_to_list(lock, black_domains, domain, dev)
             # but only logg the other ones
             elif dev < self.deviation_alert_medium:
-                logging.critical(
-                    bcolors.WARNING +
-                    "[medium] the domain {} is acting funny." +
-                    " You better check it out... NOW".format(domain) +
-                    bcolors.ENDC)
+                self.print_info(
+                    "medium",
+                    "the domain {} is acting funny. Val = {}"
+                    .format(domain, dev))
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev
@@ -371,15 +389,16 @@ class LogsChecker(Thread):
             # hippy style... people can only be nice on the web
             # we only logg informations but tell the user
             if dev < self.deviation_alert_high:
-                logging.critical(
-                    bcolors.RED + "[high] " + bcolors.ENDC +
-                    "the domain {} is acting funny.".format(domain) +
-                    "You better check it out... NOW")
+                self.print_info(
+                    "high",
+                    "the domain {} is acting funny. Val = {}"
+                    .format(domain, dev))
                 warnings["high"][domain] = dev
             elif dev < self.deviation_alert_medium:
-                logging.critical(
-                    "[medium] the domain {} is acting funny.".format(domain) +
-                    "Value = {}".format(dev))
+                self.print_info(
+                    "medium",
+                    "the domain {} is acting funny. Val = {}"
+                    .format(domain, dev))
                 warnings["medium"][domain] = dev
             elif dev < self.deviation_alert_low:
                 warnings["low"][domain] = dev

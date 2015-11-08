@@ -85,19 +85,17 @@ class Console(Thread):
             self.__parse_arguments__(command)
 
     def c_display_help(self, arg=None):
-        """[h] Prints this help message """
+        """h: prints this help message """
         if arg:
             logging.critical(
                 bcolors.RED +
                 "this command does not take arguments" +
                 bcolors.ENDC)
-        logging.critical(
-            bcolors.BOLD +
-            "The list of valid commands are :" + bcolors.ENDC)
+        logging.critical("The list of valid commands are :")
         arguments = getUserMethodsFromClass(Console)
         for i in arguments:
             if i.startswith("c_"):
-                print(getattr(Console, i).__doc__)
+                print("\t" + getattr(Console, i).__doc__)
 
     def __parse_arguments__(self, arg):
         """
@@ -130,7 +128,7 @@ class Console(Thread):
             method()
 
     def c_change_current_paranoia(self, level):
-        """p [high|medium|low] Changes the level of paranoia """
+        """p [high|medium|low]: changes the level of paranoia """
         global current_paranoia
         global allowed_paranoia
         if level[0] in allowed_paranoia:
@@ -144,11 +142,11 @@ class Console(Thread):
                 "It sould be {}".format(allowed_paranoia))
 
     def c_display_white_list(self):
-        """lw: Prints the white listed domains """
+        """lw: prints the white listed domains """
         logging.critical("{}".format(white_domains))
 
     def c_display_black_list(self):
-        """lb: Prints the black listed domains """
+        """lb: prints the black listed domains """
         logging.critical("{}".format(black_domains))
 
     def __log_warnings(self, w, warnings):
@@ -157,7 +155,7 @@ class Console(Thread):
                 "{}".format(l) + " {}".format(warnings[w][l]))
 
     def c_display_warnings(self, level="all"):
-        """lwa [high|medium|low] : prints the warnings (default : all)"""
+        """lwa [high|medium|low]: prints the warnings (default : all)"""
         if level == "all":
             for w in warnings:
                 logging.critical("level {}".format(w))
@@ -173,14 +171,14 @@ class Console(Thread):
                 self.__log_warnings(lev, warnings)
 
     def c_add_to_while_list(self, domains):
-        """aw [domains]: Adds domains to the white list"""
+        """aw [domains]: adds domains to the white list"""
         lock.acquire()
         for i in domains:
             white_domains[i] = "Manual"
         lock.release()
 
     def c_add_to_black_list(self, domains):
-        """ab [domains]: Adds domains to the black list"""
+        """ab [domains]: adds domains to the black list"""
         lock.acquire()
         for i in domains:
             black_domains[i] = "Manual"
@@ -194,7 +192,7 @@ class Console(Thread):
         lock.release()
 
     def c_remove_from_white_list(self, domains):
-        """rb [domains]: Remove domains from the white list"""
+        """rb [domains]: remove domains from the white list"""
         lock.acquire()
         for i in domains:
             del white_domains[i]

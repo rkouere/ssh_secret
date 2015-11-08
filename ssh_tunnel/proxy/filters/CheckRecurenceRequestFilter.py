@@ -76,7 +76,11 @@ def remove_from_list(lock, _list, domain):
     Takes a lock, the list, the name of the domain
     """
     lock.acquire()
-    del _list[domain]
+    try:
+        del _list[domain]
+        return True
+    except:
+        return False
     lock.release()
 
 
@@ -207,18 +211,24 @@ class Console(Thread):
         """rb [domains]: remove domains from the black list
         and deletes all the data from this domain"""
         for i in domains:
-            remove_from_list(lock, black_domains, i)
-            lock.acquire()
-            del access_log[i]
-            lock.release()
-            logging.critical(
-                "Removed {} from the black list and the access log".format(i))
+            if remove_from_list(lock, black_domains, i):
+                logging.critical(
+                    "Removed {} from the black list and the access log"
+                    .format(i))
+            else:
+                logging.critical(
+                    "The domain {} if not blacklisted".format(i))
 
     def c_remove_from_white_list(self, domains):
         """rw [domains]: remove domains from the white list"""
         for i in domains:
-            remove_from_list(lock, white_domains, i)
-            logging.critical("Removed {} from the white list".format(i))
+            if remove_from_list(lock, white_domains, i):
+                logging.critical(
+                    "Removed {} from the white list and the access log"
+                    .format(i))
+            else:
+                logging.critical(
+                    "The domain {} if not whitelisted".format(i))
 
 
 class LogsCleaning(Thread):

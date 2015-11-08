@@ -148,6 +148,7 @@ class Console(Thread):
             "lw": self.c_display_white_list,
             "lb": self.c_display_black_list,
             "lwa": self.c_display_warnings,
+            "lal": self.c_display_access_log,
             }
         command_multiple_arguments = {
             "ab": self.c_add_to_black_list,
@@ -189,6 +190,10 @@ class Console(Thread):
     def c_display_black_list(self):
         """lb: prints the black listed domains """
         logging.critical("{}".format(black_domains))
+
+    def c_display_access_log(self):
+        """lal: prints the access log """
+        logging.critical("{}".format(access_log))
 
     def __log_warnings(self, w, warnings):
         """

@@ -7,6 +7,7 @@ import logging
 import time
 from urllib.parse import urlparse
 from lib.colors import bcolors
+import socket
 
 black_domains = {}
 white_domains = {}
@@ -75,15 +76,28 @@ def remove_from_list(lock, _list, domain):
     Remove one domain from a list
     Takes a lock, the list, the name of the domain
     """
-    lock.acquire()
     try:
+        lock.acquire()
         del _list[domain]
         if domain in access_log:
             del access_log[domain]
+        lock.release()
         return True
     except:
         return False
-    lock.release()
+
+
+def get_ips_for_host(host):
+    """ thanks i
+        http://stackoverflow.com/
+        questions/4815065/
+        how-do-i-get-a-websites-ip-address-using-python-3-x
+    """
+    try:
+        ips = socket.gethostbyname_ex(host)
+    except socket.gaierror:
+        ips = []
+    return ips
 
 
 def getUserMethodsFromClass(c):
@@ -181,8 +195,9 @@ class Console(Thread):
         Displays the warning contained in w
         """
         for l in warnings[w]:
+            ip = get_ips_for_host(l[7:])
             logging.critical(
-                "{} {}".format(l, warnings[w][l]))
+                "{} {} {}".format(l, ip, warnings[w][l]))
 
     def c_display_warnings(self, level="all"):
         """lwa [high|medium|low]: prints the warnings (default : all)"""

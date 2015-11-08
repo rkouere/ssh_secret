@@ -327,9 +327,15 @@ class LogsChecker(Thread):
             return True
 
         elif current_paranoia == "paranoiac":
+            # if the deviation is low, we only log it
+            if dev < self.deviation_alert_low:
+                logging.critical(
+                    "[low] the domain {} is acting funny." +
+                    " You better check it out... NOW".format(domain))
+                warnings["low"][domain] = dev
             # a program is probably trying to access the web
             # as any good paranoiac knows, there MUST be something going on
-            if dev < self.deviation_alert_high:
+            elif dev < self.deviation_alert_high:
                 logging.critical("added {} to the blacklist".format(domain))
                 add_to_list(lock, black_domains, domain, dev)
 

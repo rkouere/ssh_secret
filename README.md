@@ -8,9 +8,14 @@ In other words, we build an SSH-over-HTTP tunnel.
 
 ## Dependencies ##
 
-requests > 2.6.1 : to install on Ubuntu : 
+requests > 2.6.1 : to install on Ubuntu :
+
     + install ``python3-pip``
     + pip3 install --upgrade requests
+
+The project uses the EAX mode from pycrypto 2.7a1. You may need to install it from the git repo :
+
+sudo pip install git+https://github.com/dlitz/pycrypto.git#egg=pycrypto
 
 ## Definitions ##
 

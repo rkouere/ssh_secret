@@ -1,2 +1,2 @@
 requests
-pycrypto
+pycrypto -e git+https://github.com/dlitz/pycrypto.git#egg=pycrypto >= 2.7a1

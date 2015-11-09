@@ -25,8 +25,6 @@ def try_post(url, interval, *args, **kwargs):
         time.sleep((random.randint(0, 1000)//1000))
         try:
             r = requests.post(url, headers={'User-Agent': USER_AGENT}, *args, **kwargs)
-            print(r.headers)
-            print(r.content)
             return r
         except requests.exceptions.ConnectionError:
             print("Connection to {} failed, retry in {} sec".format(url, interval))
@@ -47,8 +45,8 @@ class SSHReadThread(Thread):
             request_id = random.getrandbits(128)
             r = try_post(self.baseurl+"/down/{}".format(request_id), self.interval, data=str(random.getrandbits(128)))
             if r.status_code == 201:
-                content = self.cipherer.decrypt(r.content)
                 try:
+                    content = self.cipherer.decrypt(r.content)
                     self.socket.send(content)
                 except OSError:
                     print("Broken pipe trying to send data to ssh_server. Exiting")

@@ -66,7 +66,7 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
             except queue.Empty:
                 body = b""
             incoming_done[identifier] = body
-            body = cipherer.encrypt(body)
+        body = cipherer.encrypt(body)
 
         f = io.BytesIO()
         f.write(body)
@@ -85,16 +85,22 @@ class SSHTunnelHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         identifier = parse_id(self.path)
         content_len = int(self.headers.get('Content-Length', 0))
-        if identifier not in outgoing_done and content_len > 0:
-            body = self.rfile.read(content_len)
-            body = cipherer.decrypt(body)
-            outgoing_content.put(body)
-            outgoing_done[identifier] = body
-        else:
-            body = outgoing_done[identifier]
-        self.send_response(201)
-        self.send_header("Content-type", "audio")
-        self.end_headers()
+        try:
+            if identifier not in outgoing_done and content_len > 0:
+                body = self.rfile.read(content_len)
+                body = cipherer.decrypt(body)
+                outgoing_content.put(body)
+                outgoing_done[identifier] = body
+                print("Mac verification failed, passing")
+            else:
+                body = outgoing_done[identifier]
+            self.send_response(201)
+            self.send_header("Content-type", "audio")
+            self.end_headers()
+        except ValueError:
+            self.send_response(400)
+            self.send_header("Content-type", "audio")
+            self.end_headers()
 
     def log_message(self, format, *args):
         # Mute the default message logger

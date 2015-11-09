@@ -27,7 +27,6 @@ class Cipherer():
         crypted = cipher.encrypt(data)
         tag = cipher.digest()
         msg = iv + crypted + tag
-        print("Tag out : {}".format(str(tag)))
         return msg
 
     def decrypt(self, data):
@@ -36,7 +35,6 @@ class Cipherer():
         iv = data[:16]
         msg = data[16:-16]
         tag = data[-16:]
-        print("Tag in : {}".format(str(tag)))
         cipher = AES.new(self.key, AES.MODE_EAX, iv)
         cleartext = cipher.decrypt(msg)
         cipher.verify(tag)
